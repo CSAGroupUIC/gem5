@@ -1,8 +1,8 @@
 from m5.params import *
 from m5.proxy import *
-from m5.objects.ChannelMemCtrl import ChannelMemCtrl
+from m5.objects.MemCtrl import *
 
-class MinirankMemCtrl(ChannelMemCtrl):
+class MinirankMemCtrl(MemCtrl):
     type = 'MinirankMemCtrl'
     cxx_header = "mem/minirank_mem_ctrl.hh"
     cxx_class = 'gem5::memory::MinirankMemCtrl'

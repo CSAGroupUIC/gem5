@@ -56,10 +56,10 @@ namespace gem5
 namespace memory
 {
 
-ChannelMemCtrl::ChannelMemCtrl(const ChannelMemCtrlParams &p,
+ChannelMemCtrl::ChannelMemCtrl(const MinirankMemCtrlParams &p,
         MinirankMemCtrl* _minirank, uint8_t minirank_channel,
         unsigned numOfChannels) :
-    qos::MemCtrl(p),
+    MemCtrl(p),
     port(name() + ".port", *this), isTimingMode(false),
     retryRdReq(false), retryWrReq(false),
     nextReqEvent([this]{ processNextReqEvent(); }, name()),

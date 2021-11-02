@@ -55,9 +55,10 @@
 #include "base/callback.hh"
 #include "base/statistics.hh"
 #include "enums/MemSched.hh"
-#include "mem/qos/mem_ctrl.hh"
+#include "mem/mem_ctrl.hh"
 #include "mem/qport.hh"
-#include "params/ChannelMemCtrl.hh"
+#include "params/MemCtrl.hh"
+#include "params/MinirankMemCtrl.hh"
 #include "sim/eventq.hh"
 
 namespace gem5
@@ -100,7 +101,7 @@ typedef std::deque<MemPacket*> MemPacketQueue;
  * please cite the paper.
  *
  */
-class ChannelMemCtrl : public qos::MemCtrl
+class ChannelMemCtrl : public MemCtrl
 {
   friend class MinirankMemCtrl;
   private:
@@ -479,7 +480,7 @@ class ChannelMemCtrl : public qos::MemCtrl
 
   public:
 
-    ChannelMemCtrl(const ChannelMemCtrlParams &p,
+    ChannelMemCtrl(const MinirankMemCtrlParams &p,
         MinirankMemCtrl* _minirank = nullptr, uint8_t minirank_channel = 0,
         unsigned numOfChannels = 0);
 

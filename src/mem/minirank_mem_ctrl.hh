@@ -17,7 +17,7 @@ namespace memory
 
 class ChannelMemCtrl;
 
-class MinirankMemCtrl : public ChannelMemCtrl
+class MinirankMemCtrl : public MemCtrl
 {
     protected:
 
@@ -87,12 +87,13 @@ class MinirankMemCtrl : public ChannelMemCtrl
 
     virtual void init() override;
     virtual void startup() override;
-    virtual void drainResume() override;
+    // virtual void drainResume() override;
     Tick scheduleAddrBus(Tick req_time);
 
     protected:
 
     Tick recvAtomic(PacketPtr pkt);
+    Tick recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &backdoor);
     void recvFunctional(PacketPtr pkt);
     bool recvTimingReq(PacketPtr pkt);
 

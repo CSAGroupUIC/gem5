@@ -7,7 +7,7 @@ namespace memory
 {
 
 MinirankMemCtrl::MinirankMemCtrl(const MinirankMemCtrlParams &p) :
-    ChannelMemCtrl(p),
+    MemCtrl(p),
     port(name() + ".port", *this), isTimingMode(true),
     retryRdReq(false), retryWrReq(false)
 {
@@ -193,10 +193,32 @@ MinirankMemCtrl::MemoryPort::recvFunctional(PacketPtr pkt)
     pkt->popLabel();
 }
 
+
+Tick
+MinirankMemCtrl::recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &backdoor)
+{
+    Tick latency = recvAtomic(pkt);
+    // FIXME add dram interface
+    // if (dram) {
+    //     dram->getBackdoor(backdoor);
+    // } else if (nvm) {
+    //     nvm->getBackdoor(backdoor);
+    // }
+    return latency;
+}
+
 Tick
 MinirankMemCtrl::MemoryPort::recvAtomic(PacketPtr pkt)
 {
     return ctrl.recvAtomic(pkt);
+}
+
+
+Tick
+MinirankMemCtrl::MemoryPort::recvAtomicBackdoor(
+        PacketPtr pkt, MemBackdoorPtr &backdoor)
+{
+    return ctrl.recvAtomicBackdoor(pkt, backdoor);
 }
 
 bool
