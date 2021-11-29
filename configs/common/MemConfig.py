@@ -61,6 +61,7 @@ def create_mem_intf(intf, r, i, intlv_bits, intlv_size,
     # Create an instance so we can figure out the address
     # mapping and row-buffer size
     interface = intf()
+    print(interface)
 
     # Only do this for DRAMs
     if issubclass(intf, m5.objects.DRAMInterface):
@@ -92,6 +93,20 @@ def create_mem_intf(intf, r, i, intlv_bits, intlv_size,
 
             intlv_low_bit = int(math.log(buffer_size, 2))
 
+    # Only do this for DRAMs
+    if issubclass(intf, m5.objects.MinirankDRAMInterface):
+        # If the channel bits are appearing after the column
+        # bits, we need to add the appropriate number of bits
+        # for the row buffer size
+        if interface.addr_mapping.value == 'RoRaBaChCo':
+            # This computation only really needs to happen
+            # once, but as we rely on having an instance we
+            # end up having to repeat it for each and every
+            # one
+            rowbuffer_size = interface.device_rowbuffer_size.value * \
+                interface.devices_per_rank.value
+
+            intlv_low_bit = int(math.log(rowbuffer_size, 2))
     # We got all we need to configure the appropriate address
     # range
     interface.range = m5.objects.AddrRange(r.start, size = r.size(),
@@ -219,6 +234,7 @@ def config_mem(options, system):
 
                 # Create the controller that will drive the interface
                 mem_ctrl = dram_intf.controller()
+                print(mem_ctrl)
 
                 mem_ctrls.append(mem_ctrl)
 

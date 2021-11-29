@@ -45,6 +45,7 @@
 
 #include "libdrampower/LibDRAMPower.h"
 #include "params/DRAMInterface.hh"
+#include "params/MinirankDRAMInterface.hh"
 
 namespace gem5
 {
@@ -101,6 +102,55 @@ class DRAMPower
 
 };
 
+class ChannelDRAMPower
+{
+    private:
+
+    /**
+     * Transform the architechture parameters defined in
+     * MinirankDRAMInterfaceParams to the memSpec of DRAMPower
+     */
+    static Data::MemArchitectureSpec getArchParams(
+                                     const MinirankDRAMInterfaceParams &p);
+
+    /**
+     * Transforms the timing parameters defined in
+     * MinirankDRAMInterfaceParams to the memSpec of DRAMPower
+     */
+    static Data::MemTimingSpec
+            getTimingParams(const MinirankDRAMInterfaceParams &p);
+
+    /**
+     * Transforms the power and current parameters defined in
+     * MinirankDRAMInterfaceParams to the memSpec of DRAMPower
+     */
+    static Data::MemPowerSpec
+            getPowerParams(const MinirankDRAMInterfaceParams &p);
+
+    /**
+     * Determine data rate, either one or two.
+     */
+    static uint8_t getDataRate(const MinirankDRAMInterfaceParams &p);
+
+    /**
+     * Determine if DRAM has two voltage domains (or one)
+     */
+    static bool hasTwoVDD(const MinirankDRAMInterfaceParams &p);
+
+    /**
+     * Return an instance of MemSpec based on the MinirankDRAMInterfaceParams
+     */
+    static Data::MemorySpecification
+            getMemSpec(const MinirankDRAMInterfaceParams &p);
+
+ public:
+
+    // Instance of DRAMPower Library
+   libDRAMPower powerlib;
+
+   ChannelDRAMPower(const MinirankDRAMInterfaceParams &p, bool include_io);
+
+};
 } // namespace gem5
 
 #endif //__MEM_DRAM_POWER_HH__

@@ -712,7 +712,7 @@ class MemCtrl : public qos::MemCtrl
     Tick recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &backdoor);
     void recvFunctional(PacketPtr pkt);
     bool recvTimingReq(PacketPtr pkt);
-
+  friend class ChannelMemCtrl;
 };
 
 } // namespace memory

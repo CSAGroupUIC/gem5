@@ -56,6 +56,7 @@
 #include "base/statistics.hh"
 #include "enums/MemSched.hh"
 #include "mem/mem_ctrl.hh"
+#include "mem/minirank_dram_interface.hh"
 #include "mem/qport.hh"
 #include "params/MemCtrl.hh"
 #include "params/MinirankMemCtrl.hh"
@@ -72,6 +73,7 @@ class NVMInterface;
 class BurstHelpler;
 class MemPacket;
 class MinirankMemCtrl;
+class ChannelDRAMInterface;
 
 // The memory packets are store in a multiple dequeue structure,
 // based on their QoS priority
@@ -106,48 +108,31 @@ class ChannelMemCtrl : public MemCtrl
   friend class MinirankMemCtrl;
   private:
 
-    // For now, make use of a queued response port to avoid dealing with
-    // flow control for the responses being sent back
-    class MemoryPort : public QueuedResponsePort
-    {
+    // // For now, make use of a queued response port to avoid dealing with
+    // // flow control for the responses being sent back
+    // class MemoryPort : public QueuedResponsePort
+    // {
 
-        RespPacketQueue queue;
-        ChannelMemCtrl& ctrl;
+    //     RespPacketQueue queue;
+    //     ChannelMemCtrl& ctrl;
 
-      public:
+    //   public:
 
-        MemoryPort(const std::string& name, ChannelMemCtrl& _ctrl);
+    //     MemoryPort(const std::string& name, ChannelMemCtrl& _ctrl);
 
-      protected:
+    //   protected:
 
-        Tick recvAtomic(PacketPtr pkt) override;
-        Tick recvAtomicBackdoor(
-                PacketPtr pkt, MemBackdoorPtr &backdoor) override;
+    //     Tick recvAtomic(PacketPtr pkt) override;
+    //     Tick recvAtomicBackdoor(
+    //             PacketPtr pkt, MemBackdoorPtr &backdoor) override;
 
-        void recvFunctional(PacketPtr pkt) override;
+    //     void recvFunctional(PacketPtr pkt) override;
 
-        bool recvTimingReq(PacketPtr) override;
+    //     bool recvTimingReq(PacketPtr) override;
 
-        AddrRangeList getAddrRanges() const override;
+    //     AddrRangeList getAddrRanges() const override;
 
-    };
-
-    /**
-     * Our incoming port, for a multi-ported controller add a crossbar
-     * in front of it
-     */
-    MemoryPort port;
-
-    /**
-     * Remember if the memory system is in timing mode
-     */
-    bool isTimingMode;
-
-    /**
-     * Remember if we have to retry a request when available.
-     */
-    bool retryRdReq;
-    bool retryWrReq;
+    // };
 
     /**
      * Bunch of things requires to setup "events" in gem5
@@ -156,10 +141,8 @@ class ChannelMemCtrl : public MemCtrl
      * in these methods
      */
     void processNextReqEvent();
-    EventFunctionWrapper nextReqEvent;
 
     void processRespondEvent();
-    EventFunctionWrapper respondEvent;
 
     /**
      * Check if the read queue has room for more entries
@@ -272,15 +255,6 @@ class ChannelMemCtrl : public MemCtrl
      */
     MemPacketQueue::iterator chooseNextFRFCFS(MemPacketQueue& queue,
             Tick extra_col_delay);
-
-    /**
-     * Calculate burst window aligned tick
-     *
-     * @param cmd_tick Initial tick of command
-     * @return burst window aligned tick
-     */
-    Tick getBurstWindow(Tick cmd_tick);
-
     /**
      * Used for debugging to observe the contents of the queues.
      */
@@ -294,105 +268,21 @@ class ChannelMemCtrl : public MemCtrl
      *
      * @return An address aligned to a memory burst
      */
-    Addr burstAlign(Addr addr, bool is_dram) const;
+    Addr burstAlign(Addr addr, bool is_channel_dram) const;
 
-    /**
-     * The controller's main read and write queues,
-     * with support for QoS reordering
-     */
-    std::vector<MemPacketQueue> readQueue;
-    std::vector<MemPacketQueue> writeQueue;
-
-    /**
-     * To avoid iterating over the write queue to check for
-     * overlapping transactions, maintain a set of burst addresses
-     * that are currently queued. Since we merge writes to the same
-     * location we never have more than one address to the same burst
-     * address.
-     */
-    std::unordered_set<Addr> isInWriteQueue;
-
-    /**
-     * Response queue where read packets wait after we're done working
-     * with them, but it's not time to send the response yet. The
-     * responses are stored separately mostly to keep the code clean
-     * and help with events scheduling. For all logical purposes such
-     * as sizing the read queue, this and the main read queue need to
-     * be added together.
-     */
-    std::deque<MemPacket*> respQueue;
-
-    /**
-     * Holds count of commands issued in burst window starting at
-     * defined Tick. This is used to ensure that the command bandwidth
-     * does not exceed the allowable media constraints.
-     */
-    std::unordered_multiset<Tick> burstTicks;
-
-    /**
-     * Create pointer to interface of the actual dram media when connected
-     */
-    DRAMInterface* const dram;
-
-    /**
-     * Create pointer to interface of the actual nvm media when connected
-     */
-    NVMInterface* const nvm;
-
-    /**
-     * The following are basic design parameters of the memory
-     * controller, and are initialized based on parameter values.
-     * The rowsPerBank is determined based on the capacity, number of
-     * ranks and banks, the burst size, and the row buffer size.
-     */
-    const uint32_t readBufferSize;
-    const uint32_t writeBufferSize;
-    const uint32_t writeHighThreshold;
-    const uint32_t writeLowThreshold;
-    const uint32_t minWritesPerSwitch;
-    uint32_t writesThisTime;
-    uint32_t readsThisTime;
-
-    /**
-     * Memory controller configuration initialized based on parameter
-     * values.
-     */
-    enums::MemSched memSchedPolicy;
-
-    /**
-     * Pipeline latency of the controller frontend. The frontend
-     * contribution is added to writes (that complete when they are in
-     * the write buffer) and reads that are serviced the write buffer.
-     */
-    const Tick frontendLatency;
-
-    /**
-     * Pipeline latency of the backend and PHY. Along with the
-     * frontend contribution, this latency is added to reads serviced
-     * by the memory.
-     */
-    const Tick backendLatency;
-
-    /**
-     * Length of a command window, used to check
-     * command bandwidth
-     */
-    const Tick commandWindow;
-
-    /**
-     * Till when must we wait before issuing next RD/WR burst?
-     */
-    Tick nextBurstAt;
-
-    Tick prevArrival;
-
-    /**
-     * The soonest you have to start thinking about the next request
-     * is the longest access time that can occur before
-     * nextBurstAt. Assuming you need to precharge, open a new row,
-     * and access, it is tRP + tRCD + tCL.
-     */
-    Tick nextReqTime;
+    // /**
+    //  * The following are basic design parameters of the memory
+    //  * controller, and are initialized based on parameter values.
+    //  * The rowsPerBank is determined based on the capacity, number of
+    //  * ranks and banks, the burst size, and the row buffer size.
+    //  */
+    // const uint32_t readBufferSize;
+    // const uint32_t writeBufferSize;
+    // const uint32_t writeHighThreshold;
+    // const uint32_t writeLowThreshold;
+    // const uint32_t minWritesPerSwitch;
+    // uint32_t writesThisTime;
+    // uint32_t readsThisTime;
 
     struct CtrlStats : public statistics::Group
     {
@@ -454,29 +344,12 @@ class ChannelMemCtrl : public MemCtrl
         statistics::Formula requestorWriteAvgLat;
     };
 
+    uint8_t minirankChannel;
+    MinirankDRAMInterface* minirankDRAM;
+    MinirankMemCtrl* minirank;
+
+    ChannelDRAMInterface* channel_dram;
     CtrlStats stats;
-
-    /**
-     * Upstream caches need this packet until true is returned, so
-     * hold it for deletion until a subsequent call
-     */
-    std::unique_ptr<Packet> pendingDelete;
-
-    /**
-     * Select either the read or write queue
-     *
-     * @param is_read The current burst is a read, select read queue
-     * @return a reference to the appropriate queue
-     */
-    std::vector<MemPacketQueue>& selQueue(bool is_read)
-    {
-        return (is_read ? readQueue : writeQueue);
-    };
-
-    /**
-     * Remove commands that have already issued from burstTicks
-     */
-    void pruneBurstTick();
 
   public:
 
@@ -492,92 +365,17 @@ class ChannelMemCtrl : public MemCtrl
     bool allIntfDrained() const;
 
     DrainState drain() override;
-
-    /**
-     * Check for command bus contention for single cycle command.
-     * If there is contention, shift command to next burst.
-     * Check verifies that the commands issued per burst is less
-     * than a defined max number, maxCommandsPerWindow.
-     * Therefore, contention per cycle is not verified and instead
-     * is done based on a burst window.
-     *
-     * @param cmd_tick Initial tick of command, to be verified
-     * @param max_cmds_per_burst Number of commands that can issue
-     *                           in a burst window
-     * @return tick for command issue without contention
-     */
-    Tick verifySingleCmd(Tick cmd_tick, Tick max_cmds_per_burst);
-
-    /**
-     * Check for command bus contention for multi-cycle (2 currently)
-     * command. If there is contention, shift command(s) to next burst.
-     * Check verifies that the commands issued per burst is less
-     * than a defined max number, maxCommandsPerWindow.
-     * Therefore, contention per cycle is not verified and instead
-     * is done based on a burst window.
-     *
-     * @param cmd_tick Initial tick of command, to be verified
-     * @param max_multi_cmd_split Maximum delay between commands
-     * @param max_cmds_per_burst Number of commands that can issue
-     *                           in a burst window
-     * @return tick for command issue without contention
-     */
-    Tick verifyMultiCmd(Tick cmd_tick, Tick max_cmds_per_burst,
-                        Tick max_multi_cmd_split = 0);
-
-    /**
-     * Is there a respondEvent scheduled?
-     *
-     * @return true if event is scheduled
-     */
-    bool respondEventScheduled() const { return respondEvent.scheduled(); }
-
-    /**
-     * Is there a read/write burst Event scheduled?
-     *
-     * @return true if event is scheduled
-     */
-    bool requestEventScheduled() const { return nextReqEvent.scheduled(); }
-
-    /**
-     * restart the controller
-     * This can be used by interfaces to restart the
-     * scheduler after maintainence commands complete
-     *
-     * @param Tick to schedule next event
-     */
-    void restartScheduler(Tick tick) { schedule(nextReqEvent, tick); }
-
-    /**
-     * Check the current direction of the memory channel
-     *
-     * @param next_state Check either the current or next bus state
-     * @return True when bus is currently in a read state
-     */
-    bool inReadBusState(bool next_state) const;
-
-    /**
-     * Check the current direction of the memory channel
-     *
-     * @param next_state Check either the current or next bus state
-     * @return True when bus is currently in a write state
-     */
-    bool inWriteBusState(bool next_state) const;
-
-    Port &getPort(const std::string &if_name,
-                  PortID idx=InvalidPortID) override;
-
     virtual void init() override;
     virtual void startup() override;
     virtual void drainResume() override;
 
+    MinirankMemCtrl* getMinirankMemCtrl(){  return minirank;}
   protected:
 
     Tick recvAtomic(PacketPtr pkt);
     Tick recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &backdoor);
     void recvFunctional(PacketPtr pkt);
     bool recvTimingReq(PacketPtr pkt);
-
 };
 
 } // namespace memory

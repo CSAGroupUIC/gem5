@@ -33,10 +33,10 @@ BM['low1'] = [541,507,531,538]
 BM['mix'] = [511,531,538,541]
 # configure gem5 running environment
 gem5_location = "~/Research/gem5-pwu27"
-gem5 = os.path.expanduser(gem5_location + "\
-    /build/X86/gem5.opt")
-script = os.path.expanduser(gem5_location + "\
-    /configs/example/se_edited.py")
+gem5 = os.path.expanduser(gem5_location +
+    "/build/X86/gem5.opt")
+script = os.path.expanduser(gem5_location +
+    "/configs/example/se_edited.py")
 
 # Run simulation on selected benchmark
 
