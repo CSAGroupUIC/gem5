@@ -1097,8 +1097,8 @@ ChannelDRAMInterface::Rank::processRefreshEvent()
         } else if ((pwrState == PWR_IDLE) && (outstandingEvents == 1))  {
             // Banks are closed, have transitioned to IDLE state, and
             // no outstanding ACT,RD/WR,Auto-PRE sequence scheduled
-            DPRINTF(ChannelDRAM, "All banks already precharged,
-                    starting refresh\n");
+            DPRINTF(ChannelDRAM, "All banks already precharged,"
+                    "starting refresh\n");
 
             // go ahead and kick the power state machine into gear since
             // we are already idle
