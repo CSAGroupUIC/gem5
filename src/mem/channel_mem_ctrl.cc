@@ -45,7 +45,7 @@
 #include "debug/Drain.hh"
 #include "debug/NVM.hh"
 #include "debug/QOS.hh"
-#include "mem/mem_interface.hh"
+#include "mem/minirank_dram_interface.hh"
 #include "mem/minirank_mem_ctrl.hh"
 #include "sim/system.hh"
 
@@ -72,7 +72,7 @@ ChannelMemCtrl::ChannelMemCtrl(const MinirankMemCtrlParams &p,
         channel_dram = minirankDRAM->getChannelDRAMInterface(0);
     // Hook up interfaces to the controller
     assert(channel_dram);
-    channel_dram->setCtrl(this);
+    channel_dram->setChannelCtrl(this);
 
     fatal_if(!channel_dram && !nvm,
             "Memory controller must have an interface");

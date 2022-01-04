@@ -55,8 +55,11 @@
 #include "base/callback.hh"
 #include "base/statistics.hh"
 #include "enums/MemSched.hh"
+#include "mem/channel_dram_interface.hh"
 #include "mem/mem_ctrl.hh"
-#include "mem/minirank_dram_interface.hh"
+#include "mem/mem_interface.hh"
+
+// #include "mem/minirank_dram_interface.hh"
 #include "mem/qport.hh"
 #include "params/MemCtrl.hh"
 #include "params/MinirankMemCtrl.hh"
@@ -73,6 +76,7 @@ class NVMInterface;
 class BurstHelpler;
 class MemPacket;
 class MinirankMemCtrl;
+class MinirankDRAMInterface;
 class ChannelDRAMInterface;
 
 // The memory packets are store in a multiple dequeue structure,

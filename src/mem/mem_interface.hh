@@ -70,6 +70,7 @@ namespace gem5
 namespace memory
 {
 
+class ChannelDRAMInterface;
 /**
  * General interface to memory device
  * Includes functions and parameters shared across media types
@@ -307,7 +308,9 @@ class MemInterface : public AbstractMemory
  */
 class DRAMInterface : public MemInterface
 {
-  private:
+  protected:
+
+    bool isRaim;
     /**
      * Simple structure to hold the values needed to keep track of
      * commands for DRAMPower
@@ -405,7 +408,8 @@ class DRAMInterface : public MemInterface
     class Rank;
     struct RankStats : public statistics::Group
     {
-        RankStats(DRAMInterface &dram, Rank &rank);
+        RankStats(DRAMInterface* dram, Rank &rank);
+        RankStats(ChannelDRAMInterface* dram, Rank &rank);
 
         void regStats() override;
         void resetStats() override;
@@ -476,7 +480,13 @@ class DRAMInterface : public MemInterface
         /**
          * A reference to the parent DRAMInterface instance
          */
-        DRAMInterface& dram;
+        DRAMInterface* dram;
+
+        /**
+         * A reference to the parent ChannelDRAMInterface
+         * instance
+         */
+        ChannelDRAMInterface* channel_dram;
 
         /**
          * Since we are taking decisions out of order, we need to keep
@@ -591,7 +601,10 @@ class DRAMInterface : public MemInterface
         Tick lastBurstTick;
 
         Rank(const DRAMInterfaceParams &_p, int _rank,
-             DRAMInterface& _dram);
+             DRAMInterface* _dram);
+
+        Rank(const MinirankDRAMInterfaceParams &_p, int _rank,
+             ChannelDRAMInterface* _channel_dram);
 
         const std::string name() const { return csprintf("%d", rank); }
 
