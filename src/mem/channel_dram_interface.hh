@@ -36,6 +36,7 @@ class ChannelDRAMInterface : public DRAMInterface
     ChannelMemCtrl* channelCtrl;
 
     unsigned numOfChannel;
+    unsigned raimChannel;
 
     void activateBank(Rank& rank_ref, Bank& bank_ref, Tick act_tick,
                 uint32_t row);

@@ -299,10 +299,11 @@ DRAMInterface::activateBank(Rank& rank_ref, Bank& bank_ref,
     // verify that we have command bandwidth to issue the activate
     // if not, shift to next burst window
     Tick act_at;
-    if (twoCycleActivate)
-        act_at = ctrl->verifyMultiCmd(act_tick, maxCommandsPerWindow, tAAD);
-    else
-        act_at = ctrl->verifySingleCmd(act_tick, maxCommandsPerWindow);
+    // if (twoCycleActivate)
+    //     act_at = ctrl->verifyMultiCmd(act_tick, maxCommandsPerWindow, tAAD);
+    // else
+    //     act_at = ctrl->verifySingleCmd(act_tick, maxCommandsPerWindow);
+    act_at = ctrl->scheduleAddrBus(act_tick);
 
     DPRINTF(DRAM, "Activate at tick %d\n", act_at);
 
@@ -420,7 +421,8 @@ DRAMInterface::prechargeBank(Rank& rank_ref, Bank& bank, Tick pre_tick,
         // Issuing an explicit PRE command
         // Verify that we have command bandwidth to issue the precharge
         // if not, shift to next burst window
-        pre_at = ctrl->verifySingleCmd(pre_tick, maxCommandsPerWindow);
+        // pre_at = ctrl->verifySingleCmd(pre_tick, maxCommandsPerWindow);
+        pre_at = ctrl->scheduleAddrBus(pre_at);
         // enforce tPPD
         for (int i = 0; i < banksPerRank; i++) {
             rank_ref.banks[i].preAllowedAt = std::max(pre_at + tPPD,
@@ -518,10 +520,12 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
 
     // verify that we have command bandwidth to issue the burst
     // if not, shift to next burst window
-    if (dataClockSync && ((cmd_at - rank_ref.lastBurstTick) > clkResyncDelay))
-        cmd_at = ctrl->verifyMultiCmd(cmd_at, maxCommandsPerWindow, tCK);
-    else
-        cmd_at = ctrl->verifySingleCmd(cmd_at, maxCommandsPerWindow);
+    // if (dataClockSync &&
+    // ((cmd_at - rank_ref.lastBurstTick) > clkResyncDelay))
+    //     cmd_at = ctrl->verifyMultiCmd(cmd_at, maxCommandsPerWindow, tCK);
+    // else
+    //     cmd_at = ctrl->verifySingleCmd(cmd_at, maxCommandsPerWindow);
+    cmd_at = ctrl->scheduleAddrBus(cmd_at);
 
     // if we are interleaving bursts, ensure that
     // 1) we don't double interleave on next burst issue
@@ -809,7 +813,7 @@ DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p)
     }
 
     // basic bank group architecture checks ->
-    if (bankGroupArch) {
+    if (bankGroupArch && isRaim) {
         // must have at least one bank per bank group
         if (bankGroupsPerRank > banksPerRank) {
             fatal("banks per rank (%d) must be equal to or larger than "

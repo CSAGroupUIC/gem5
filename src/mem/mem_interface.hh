@@ -296,6 +296,7 @@ class MemInterface : public AbstractMemory
      */
     virtual void addRankToRankDelay(Tick cmd_at) = 0;
 
+    Tick checkTCK(){ return tCK; }
     typedef MemInterfaceParams Params;
     MemInterface(const Params &_p);
 };
@@ -545,6 +546,7 @@ class DRAMInterface : public MemInterface
          */
         uint8_t rank;
 
+        unsigned raim_channel;
        /**
          * Track number of packets in read queue going to this rank
          */
@@ -604,7 +606,7 @@ class DRAMInterface : public MemInterface
              DRAMInterface* _dram);
 
         Rank(const MinirankDRAMInterfaceParams &_p, int _rank,
-             ChannelDRAMInterface* _channel_dram);
+             unsigned _raim_channel, ChannelDRAMInterface* _channel_dram);
 
         const std::string name() const { return csprintf("%d", rank); }
 

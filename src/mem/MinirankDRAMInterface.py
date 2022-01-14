@@ -46,14 +46,14 @@ class MinirankDRAMInterface(DRAMInterface):
     cxx_header = "mem/minirank_dram_interface.hh"
     cxx_class = 'gem5::memory::MinirankDRAMInterface'
 
-    # def minirank_controller(self):
-    #     """
-    #     Instantiate the memory controller and bind it to
-    #     the current interface.
-    #     """
-    #     controller = MinirankMemCtrl()
-    #     controller.minirank_dram = self
-    #     return controller
+    def minirank_controller(self):
+        """
+        Instantiate the memory controller and bind it to
+        the current interface.
+        """
+        controller = MinirankMemCtrl()
+        controller.minirank_dram = self
+        return controller
 # A single DDR4-2400 x64 channel (one command and address bus), with
 # timings based on a DDR4-2400 8 Gbit datasheet (Micron MT40A2G4)
 # in an 16x4 configuration.

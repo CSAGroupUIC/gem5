@@ -88,7 +88,7 @@ MemCtrl::MemCtrl(const MemCtrlParams &p) :
     if (nvm)
         nvm->setCtrl(this, commandWindow);
 
-    fatal_if(!dram && !nvm, "Memory controller must have an interface");
+    // fatal_if(!dram && !nvm, "Memory controller must have an interface");
 
     // perform a basic check of the write thresholds
     if (p.write_low_thresh_perc >= p.write_high_thresh_perc)
@@ -721,6 +721,35 @@ MemCtrl::verifySingleCmd(Tick cmd_tick, Tick max_cmds_per_burst)
     // add command into burst window and return corresponding Tick
     burstTicks.insert(burst_tick);
     return cmd_at;
+}
+
+Tick
+MemCtrl::scheduleAddrBus(Tick req_time)
+{
+    auto& reserve_map = this->addrBusReserveMap;
+
+    // Purse the reserve map every N = 1000 calls
+    static int call_count = 0;
+    if (++call_count > 1000) {
+        Tick now = divCeil(curTick(), dram->checkTCK());
+        for (auto it = reserve_map.begin(); it != reserve_map.end(); ++it) {
+            if (*it < now) // Fixme
+                reserve_map.erase(it);
+        }
+        call_count = 0;
+    }
+
+    // Find the first available bus slot from the request time
+    // Note: Reserve map usage is based on DRAM bus clock, one slot for each
+    // bus clock cycle
+    Tick bus_slot = divCeil(req_time, dram->checkTCK());
+    while (reserve_map.find(bus_slot) != reserve_map.end()) {
+        ++bus_slot;
+    }
+    reserve_map.insert(bus_slot);
+
+    Tick granted_time = bus_slot * dram->checkTCK();
+    return granted_time;
 }
 
 Tick

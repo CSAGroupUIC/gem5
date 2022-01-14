@@ -20,6 +20,7 @@ ChannelDRAMInterface::ChannelDRAMInterface(
         const MinirankDRAMInterfaceParams &_p,
         uint8_t raim_channel, MinirankDRAMInterface* raim, bool is_raim)
     : DRAMInterface(_p),
+      raimChannel(raim_channel),
       stats(*this)
 {
     DPRINTF(ChannelDRAM, "Setting up channel DRAM Interface\n");
@@ -35,7 +36,7 @@ ChannelDRAMInterface::ChannelDRAMInterface(
     isRaim = is_raim;
     for (int i = 0; i < ranksPerChannel; i++) {
         DPRINTF(ChannelDRAM, "Creating channel DRAM rank %d \n", i);
-        Rank* rank = new Rank(_p, i, this);
+        Rank* rank = new Rank(_p, i, raimChannel,this);
         ranks.push_back(rank);
     }
 
@@ -73,13 +74,13 @@ ChannelDRAMInterface::ChannelDRAMInterface(
                   banksPerRank, bankGroupsPerRank);
         }
         // tCCD_L should be greater than minimal, back-to-back burst delay
-        if (tCCD_L <= tBURST) {
+        if (tCCD_L < tBURST) {
             fatal("tCCD_L (%d) should be larger than the minimum bus delay "
                   "(%d) when bank groups per rank (%d) is greater than 1\n",
                   tCCD_L, tBURST, bankGroupsPerRank);
         }
         // tCCD_L_WR should be greater than minimal, back-to-back burst delay
-        if (tCCD_L_WR <= tBURST) {
+        if (tCCD_L_WR < tBURST) {
             fatal("tCCD_L_WR (%d) should be larger than the minimum bus delay "
                   " (%d) when bank groups per rank (%d) is greater than 1\n",
                   tCCD_L_WR, tBURST, bankGroupsPerRank);
@@ -826,11 +827,13 @@ ChannelDRAMInterface::minBankPrep(const MemPacketQueue& queue,
 
 
 ChannelDRAMInterface::Rank::Rank(const MinirankDRAMInterfaceParams &_p,
-                         int _rank, ChannelDRAMInterface* _channel_dram)
+                         int _rank, unsigned _raim_channel,
+                         ChannelDRAMInterface* _channel_dram)
     : EventManager(_channel_dram), dram(nullptr),channel_dram(_channel_dram),
       pwrStateTrans(PWR_IDLE), pwrStatePostRefresh(PWR_IDLE),
       pwrStateTick(0), refreshDueAt(0), pwrState(PWR_IDLE),
       refreshState(REF_IDLE), inLowPowerState(false), rank(_rank),
+      raim_channel(_raim_channel),
       readEntries(0), writeEntries(0), outstandingEvents(0),
       wakeUpAllowedAt(0), power(_p, false), banks(_p.banks_per_rank),
       numBanksActive(0), actTicks(_p.activation_limit, 0), lastBurstTick(0),
@@ -991,8 +994,8 @@ ChannelDRAMInterface::ChannelDRAMStats::regStats()
 ChannelDRAMInterface::RankStats::RankStats(ChannelDRAMInterface* _channel_dram,
         Rank &_rank)
     : statistics::Group(_channel_dram,
-            csprintf("rank%d", _rank.rank).c_str()),
-    rank(_rank),
+            csprintf("channel%d rank%d", _rank.raim_channel,
+            _rank.rank).c_str()), rank(_rank),
 
     ADD_STAT(actEnergy, statistics::units::Joule::get(),
              "Energy for activate commands per rank (pJ)"),

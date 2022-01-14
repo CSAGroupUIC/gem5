@@ -615,6 +615,12 @@ class MemCtrl : public qos::MemCtrl
      */
     void pruneBurstTick();
 
+    /**
+     * replace verifySingleCmd
+     * reserved bus slot
+     */
+    std::set<Tick> addrBusReserveMap;
+
   public:
 
     MemCtrl(const MemCtrlParams &p);
@@ -642,6 +648,8 @@ class MemCtrl : public qos::MemCtrl
      * @return tick for command issue without contention
      */
     Tick verifySingleCmd(Tick cmd_tick, Tick max_cmds_per_burst);
+
+    Tick scheduleAddrBus(Tick req_time);
 
     /**
      * Check for command bus contention for multi-cycle (2 currently)

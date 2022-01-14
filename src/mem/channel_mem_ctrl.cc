@@ -550,7 +550,7 @@ ChannelMemCtrl::processRespondEvent()
     // so if there is a read that was forced to wait, retry now
     if (retryRdReq) {
         retryRdReq = false;
-        port.sendRetryReq();
+        minirank->port.sendRetryReq();
     }
 }
 
@@ -664,7 +664,7 @@ ChannelMemCtrl::accessAndRespond(PacketPtr pkt, Tick static_latency)
 
         // queue the packet in the response queue to be sent out after
         // the static latency has passed
-        port.schedTimingResp(pkt, response_time);
+        minirank->port.schedTimingResp(pkt, response_time);
     } else {
         // @todo the packet is going to be deleted, and the MemPacket
         // is still having a pointer to it
@@ -1015,7 +1015,7 @@ ChannelMemCtrl::processNextReqEvent()
     // the next request processing
     if (retryWrReq && totalWriteQueueSize < writeBufferSize) {
         retryWrReq = false;
-        port.sendRetryReq();
+        minirank->port.sendRetryReq();
     }
 }
 
@@ -1054,7 +1054,8 @@ ChannelMemCtrl::burstAlign(Addr addr, bool is_channel_dram) const
 }
 
 ChannelMemCtrl::CtrlStats::CtrlStats(ChannelMemCtrl &_ctrl)
-    : statistics::Group(&_ctrl),
+    : statistics::Group(_ctrl.minirank,
+      csprintf("channel%d", _ctrl.minirankChannel).c_str()),
     ctrl(_ctrl),
 
     ADD_STAT(readReqs, statistics::units::Count::get(),

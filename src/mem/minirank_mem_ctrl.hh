@@ -9,6 +9,7 @@
 #include "mem/qport.hh"
 #include "params/MinirankMemCtrl.hh"
 
+class MinirankDRAMInterface;
 namespace gem5
 {
 
@@ -70,13 +71,31 @@ class MinirankMemCtrl : public MemCtrl
      * Note: In real hardware design, it can be implemented in an
      * efficient way, e.g. as a bitmap in forms of shift register
      */
-    std::set<Tick> addrBusReserveMap;
+    std::set<Tick> mrAddrBusReserveMap;
 
     /**
      * Remember if we have to retry a request when available.
      */
     bool retryRdReq;
     bool retryWrReq;
+
+    /**
+     * Create pointer to interface of minirank dram when connected
+     */
+    MinirankDRAMInterface* const minirankDRAM;
+
+    struct MinirankCtrlStats : public statistics::Group
+    {
+        MinirankCtrlStats(MinirankMemCtrl &ctrl);
+
+        void regStats() override;
+
+        MinirankMemCtrl &ctrl;
+        // All statistics that the model needs to capture
+        Stats::Scalar parityUpdates;
+    };
+
+    MinirankCtrlStats stats;
 
     public:
 

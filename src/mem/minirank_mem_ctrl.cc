@@ -1,3 +1,4 @@
+#include "mem/minirank_dram_interface.hh"
 #include "minirank_mem_ctrl.hh"
 
 namespace gem5
@@ -8,11 +9,16 @@ namespace memory
 
 MinirankMemCtrl::MinirankMemCtrl(const MinirankMemCtrlParams &p) :
     MemCtrl(p),
-    port(name() + ".port", *this), isTimingMode(true),
-    retryRdReq(false), retryWrReq(false)
+    port(name() + ".port", *this), isTimingMode(false),
+    retryRdReq(false), retryWrReq(false),
+    minirankDRAM(p.minirank_dram),
+    stats(*this)
 {
-    // minirank mem ctrl
-
+    // perform a basic check of the write thresholds
+    if (p.write_low_thresh_perc >= p.write_high_thresh_perc)
+        fatal("Write buffer low threshold %d must be smaller than the "
+              "high threshold %d\n", p.write_low_thresh_perc,
+              p.write_high_thresh_perc);
     numOfChannels = 1;
     ChannelMemCtrl* channel_ctrl = new ChannelMemCtrl(p, this, 0, numOfChannels);
     minirankChannels.push_back(channel_ctrl);
@@ -34,6 +40,21 @@ MinirankMemCtrl::startup()
     for (ChannelMemCtrl* c : minirankChannels) {
         c->startup();
     }
+}
+
+MinirankMemCtrl::MinirankCtrlStats::MinirankCtrlStats(
+          MinirankMemCtrl &_ctrl)
+    : Stats::Group(&_ctrl),
+    ctrl(_ctrl),
+    ADD_STAT(parityUpdates, statistics::units::Count::get(),
+             "Total number of parity updates")
+{
+}
+
+void
+MinirankMemCtrl::MinirankCtrlStats::regStats()
+{
+    using namespace statistics;
 }
 
 Tick
@@ -100,35 +121,32 @@ MinirankMemCtrl::recvTimingReq(PacketPtr pkt)
 Tick
 MinirankMemCtrl::scheduleAddrBus(Tick req_time)
 {
-    // auto& reserve_map = this->addrBusReserveMap;
+    auto& reserve_map = this->mrAddrBusReserveMap;
 
-    // // Purse the reserve map every N = 1000 calls
-    // static int call_count = 0;
-    // if (++call_count > 1000) {
-    //     Tick now = divCeil(curTick(), minirank_dram->tCK);
-    //     for (auto it = reserve_map.begin(); it != reserve_map.end(); ++it) {
-    //         if (*it < now) // Fixme
-    //             reserve_map.erase(it);
-    //     }
-    //     call_count = 0;
-    // }
+    // Purse the reserve map every N = 1000 calls
+    static int call_count = 0;
+    if (++call_count > 1000) {
+        Tick now = divCeil(curTick(), minirankDRAM->checkTCK());
+        for (auto it = reserve_map.begin(); it != reserve_map.end(); ++it) {
+            if (*it < now) // Fixme
+                reserve_map.erase(it);
+        }
+        call_count = 0;
+    }
 
-    // // Find the first available bus slot from the request time
-    // // Note: Reserve map usage is based on DRAM bus clock, one slot for each
-    // // bus clock cycle
-    // // FIXME Using std::bitset is much more efficient than using std::set
-    // Tick bus_slot = divCeil(req_time, minirank_dram->tCK);
-    // // Tick bus_slot = req_time;
-    // while (reserve_map.find(bus_slot) != reserve_map.end()) {
-    //     ++bus_slot;
-    // }
-    // reserve_map.insert(bus_slot);
+    // Find the first available bus slot from the request time
+    // Note: Reserve map usage is based on DRAM bus clock, one slot for each
+    // bus clock cycle
+    // FIXME Using std::bitset is much more efficient than using std::set
+    Tick bus_slot = divCeil(req_time, minirankDRAM->checkTCK());
+    while (reserve_map.find(bus_slot) != reserve_map.end()) {
+        ++bus_slot;
+    }
+    reserve_map.insert(bus_slot);
 
-    // // Return the granted time
-    // Tick granted_time = bus_slot * minirank_dram->tCK;
-    // // Tick granted_time = bus_slot;
-    // return granted_time;
-    return req_time;
+    // Return the granted time
+    Tick granted_time = bus_slot * minirankDRAM->checkTCK();
+    return granted_time;
 }
 
 void
