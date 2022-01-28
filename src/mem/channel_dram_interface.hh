@@ -12,6 +12,7 @@
 #include "enums/AddrMap.hh"
 #include "enums/PageManage.hh"
 #include "mem/channel_mem_ctrl.hh"
+// #include "mem/minirank_dram_interface.hh"
 #include "mem/drampower.hh"
 #include "mem/mem_interface.hh"
 #include "params/MinirankDRAMInterface.hh"
@@ -25,6 +26,7 @@ namespace memory
 
 class ChannelMemCtrl;
 class DRAMInterface;
+class MinirankDRAMInterface;
 class ChannelDRAMInterface : public DRAMInterface
 {
     friend class Rank;
@@ -38,6 +40,8 @@ class ChannelDRAMInterface : public DRAMInterface
     unsigned numOfChannel;
     unsigned raimChannel;
 
+    MinirankDRAMInterface* minirankInt;
+
     void activateBank(Rank& rank_ref, Bank& bank_ref, Tick act_tick,
                 uint32_t row);
 
@@ -47,12 +51,12 @@ class ChannelDRAMInterface : public DRAMInterface
 
     struct ChannelDRAMStats : public statistics::Group
     {
-        ChannelDRAMStats(ChannelDRAMInterface &dram);
+        ChannelDRAMStats(MinirankDRAMInterface &dram);
 
         void regStats() override;
         void resetStats() override;
 
-        ChannelDRAMInterface &dram;
+        MinirankDRAMInterface &dram;
 
         /** total number of DRAM bursts serviced */
         statistics::Scalar readBursts;

@@ -285,7 +285,7 @@ class MemCtrl : public ClockedObject
      *
      * @param p pointer to QoSMemCtrl parameters
      */
-    MemCtrl(const QoSMemCtrlParams &);
+    MemCtrl(const QoSMemCtrlParams &, MemCtrl *stats_parent = nullptr);
 
     virtual ~MemCtrl();
 

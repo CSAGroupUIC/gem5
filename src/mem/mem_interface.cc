@@ -744,9 +744,9 @@ DRAMInterface::addRankToRankDelay(Tick cmd_at)
     }
 }
 
-DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p)
+DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim)
     : MemInterface(_p),
-      isRaim(false),
+      isRaim(is_raim),
       bankGroupsPerRank(_p.bank_groups_per_rank),
       bankGroupArch(_p.bank_groups_per_rank > 0),
       tCL(_p.tCL),
@@ -812,40 +812,41 @@ DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p)
               tREFI, tRP, tRFC);
     }
 
-    // basic bank group architecture checks ->
-    if (bankGroupArch && isRaim) {
-        // must have at least one bank per bank group
-        if (bankGroupsPerRank > banksPerRank) {
-            fatal("banks per rank (%d) must be equal to or larger than "
-                  "banks groups per rank (%d)\n",
-                  banksPerRank, bankGroupsPerRank);
-        }
-        // must have same number of banks in each bank group
-        if ((banksPerRank % bankGroupsPerRank) != 0) {
-            fatal("Banks per rank (%d) must be evenly divisible by bank "
-                  "groups per rank (%d) for equal banks per bank group\n",
-                  banksPerRank, bankGroupsPerRank);
-        }
-        // tCCD_L should be greater than minimal, back-to-back burst delay
-        if (tCCD_L <= tBURST) {
-            fatal("tCCD_L (%d) should be larger than the minimum bus delay "
-                  "(%d) when bank groups per rank (%d) is greater than 1\n",
-                  tCCD_L, tBURST, bankGroupsPerRank);
-        }
-        // tCCD_L_WR should be greater than minimal, back-to-back burst delay
-        if (tCCD_L_WR <= tBURST) {
-            fatal("tCCD_L_WR (%d) should be larger than the minimum bus delay "
-                  " (%d) when bank groups per rank (%d) is greater than 1\n",
-                  tCCD_L_WR, tBURST, bankGroupsPerRank);
-        }
-        // tRRD_L is greater than minimal, same bank group ACT-to-ACT delay
-        // some datasheets might specify it equal to tRRD
-        if (tRRD_L < tRRD) {
-            fatal("tRRD_L (%d) should be larger than tRRD (%d) when "
-                  "bank groups per rank (%d) is greater than 1\n",
-                  tRRD_L, tRRD, bankGroupsPerRank);
-        }
-    }
+    // // basic bank group architecture checks ->
+    // if (bankGroupArch && !isRaim) {
+    //     // must have at least one bank per bank group
+    //     if (bankGroupsPerRank > banksPerRank) {
+    //         fatal("banks per rank (%d) must be equal to or larger than "
+    //               "banks groups per rank (%d)\n",
+    //               banksPerRank, bankGroupsPerRank);
+    //     }
+    //     // must have same number of banks in each bank group
+    //     if ((banksPerRank % bankGroupsPerRank) != 0) {
+    //         fatal("Banks per rank (%d) must be evenly divisible by bank "
+    //               "groups per rank (%d) for equal banks per bank group\n",
+    //               banksPerRank, bankGroupsPerRank);
+    //     }
+    //     // tCCD_L should be greater than minimal, back-to-back burst delay
+    //     if (tCCD_L <= tBURST) {
+    //         fatal("tCCD_L (%d) should be larger than the minimum bus delay "
+    //               "(%d) when bank groups per rank (%d) is greater than 1\n",
+    //               tCCD_L, tBURST, bankGroupsPerRank);
+    //     }
+    //     // tCCD_L_WR should be greater than minimal
+    //     // back-to-back burst delay
+    //     if (tCCD_L_WR <= tBURST) {
+    //         fatal("tCCD_L_WR (%d) should be larger than the minimum bus"
+    //      " delay (%d) when bank groups per rank (%d) is greater"
+    //        " than 1\n", tCCD_L_WR, tBURST, bankGroupsPerRank);
+    //     }
+    //     // tRRD_L is greater than minimal, same bank group ACT-to-ACT delay
+    //     // some datasheets might specify it equal to tRRD
+    //     if (tRRD_L < tRRD) {
+    //         fatal("tRRD_L (%d) should be larger than tRRD (%d) when "
+    //               "bank groups per rank (%d) is greater than 1\n",
+    //               tRRD_L, tRRD, bankGroupsPerRank);
+    //     }
+    // }
 }
 
 void
@@ -1134,8 +1135,8 @@ DRAMInterface::minBankPrep(const MemPacketQueue& queue,
 }
 
 DRAMInterface::Rank::Rank(const DRAMInterfaceParams &_p,
-                         int _rank, DRAMInterface* _dram)
-    : EventManager(_dram), dram(_dram),channel_dram(nullptr),
+                    int _rank, DRAMInterface* _dram)
+    : EventManager(_dram), dram(_dram),
       pwrStateTrans(PWR_IDLE), pwrStatePostRefresh(PWR_IDLE),
       pwrStateTick(0), refreshDueAt(0), pwrState(PWR_IDLE),
       refreshState(REF_IDLE), inLowPowerState(false), rank(_rank),
@@ -2265,8 +2266,12 @@ DRAMInterface::DRAMStats::regStats()
         (writeBursts + readBursts) * 100;
 }
 
-DRAMInterface::RankStats::RankStats(DRAMInterface* _dram, Rank &_rank)
-    : statistics::Group(_dram, csprintf("rank%d", _rank.rank).c_str()),
+//FIXME pass channel numner here instead of 0
+DRAMInterface::RankStats::RankStats(DRAMInterface* _dram,
+                            Rank &_rank)
+    : statistics::Group(_dram, !_dram->checkRaim() ? csprintf("rank%d",
+        _rank.rank).c_str() : csprintf("channel%d rank%d",
+        0, _rank.rank).c_str()),
     rank(_rank),
 
     ADD_STAT(actEnergy, statistics::units::Joule::get(),

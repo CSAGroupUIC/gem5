@@ -56,13 +56,14 @@ namespace memory
 {
 
 ChannelMemCtrl::ChannelMemCtrl(const MinirankMemCtrlParams &p,
-        MinirankMemCtrl* _minirank, uint8_t minirank_channel,
+        bool _subranked, MinirankMemCtrl* _minirank,
+        uint8_t minirank_channel,
         unsigned numOfChannels) :
-    MemCtrl(p),
+    MemCtrl(p, _subranked, _minirank),
     minirankChannel(minirank_channel),
     minirankDRAM(p.minirank_dram),
     minirank(_minirank),
-    stats(*this)
+    stats(*minirank)
 {
     DPRINTF(ChannelMemCtrl, "Setting up controller\n");
     readQueue.resize(p.qos_priorities);
@@ -1053,9 +1054,10 @@ ChannelMemCtrl::burstAlign(Addr addr, bool is_channel_dram) const
         return (addr & ~(Addr(nvm->bytesPerBurst() - 1)));
 }
 
-ChannelMemCtrl::CtrlStats::CtrlStats(ChannelMemCtrl &_ctrl)
-    : statistics::Group(_ctrl.minirank,
-      csprintf("channel%d", _ctrl.minirankChannel).c_str()),
+// FIXME channel nmumber need to be fixed, 0 for now
+ChannelMemCtrl::CtrlStats::CtrlStats(MinirankMemCtrl &_ctrl)
+    : statistics::Group(&_ctrl,
+      csprintf("channel%d", 0).c_str()),
     ctrl(_ctrl),
 
     ADD_STAT(readReqs, statistics::units::Count::get(),

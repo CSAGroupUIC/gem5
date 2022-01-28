@@ -19,24 +19,34 @@ MinirankMemCtrl::MinirankMemCtrl(const MinirankMemCtrlParams &p) :
         fatal("Write buffer low threshold %d must be smaller than the "
               "high threshold %d\n", p.write_low_thresh_perc,
               p.write_high_thresh_perc);
+    if (minirankDRAM)
+        minirankDRAM->setMRCtrl(this);
+    assert(minirankDRAM);
+
     numOfChannels = 1;
-    ChannelMemCtrl* channel_ctrl = new ChannelMemCtrl(p, this, 0, numOfChannels);
+    ChannelMemCtrl* channel_ctrl = new ChannelMemCtrl(p, true, this,
+            0, numOfChannels);
     minirankChannels.push_back(channel_ctrl);
 }
 
 void
 MinirankMemCtrl::init()
 {
+    for (ChannelMemCtrl* c : minirankChannels) {
+        c->_system = _system;
+    }
    if (!port.isConnected()) {
         fatal("Minirank port  %s is unconnected!\n", name());
     } else {
         port.sendRangeChange();
     }
+
 }
 
 void
 MinirankMemCtrl::startup()
 {
+    isTimingMode = system()->isTimingMode();
     for (ChannelMemCtrl* c : minirankChannels) {
         c->startup();
     }
@@ -64,27 +74,21 @@ MinirankMemCtrl::recvAtomic(PacketPtr pkt)
              "is responding");
 
     Tick latency = 0;
-    // // do the actual memory access and turn the packet into a response
-    // if (dram && dram->getAddrRange().contains(pkt->getAddr())) {
-    //     dram->access(pkt);
+    // do the actual memory access and turn the packet into a response
+    if (minirankDRAM && minirankDRAM->getAddrRange().contains(
+                pkt->getAddr())) {
 
-    //     if (pkt->hasData()) {
-    //         // this value is not supposed to be accurate, just enough to
-    //         // keep things going, mimic a closed page
-    //         latency = dram->accessLatency();
-    //     }
-    // } else if (nvm && nvm->getAddrRange().contains(pkt->getAddr())) {
-    //     nvm->access(pkt);
+        minirankDRAM->access(pkt);
 
-    //     if (pkt->hasData()) {
-    //         // this value is not supposed to be accurate, just enough to
-    //         // keep things going, mimic a closed page
-    //         latency = nvm->accessLatency();
-    //     }
-    // } else {
-    //     panic("Can't handle address range for packet %s\n",
-    //           pkt->print());
-    // }
+        if (pkt->hasData()) {
+            // this value is not supposed to be accurate, just enough to
+            // keep things going, mimic a closed page
+            latency = minirankDRAM->accessLatency();
+        }
+    } else {
+        panic("Can't handle address range for packet %s\n",
+              pkt->print());
+    }
 
     return latency;
 }
@@ -152,16 +156,15 @@ MinirankMemCtrl::scheduleAddrBus(Tick req_time)
 void
 MinirankMemCtrl::recvFunctional(PacketPtr pkt)
 {
-//     if (dram && dram->getAddrRange().contains(pkt->getAddr())) {
-//         // rely on the abstract memory
-//         dram->functionalAccess(pkt);
-//     } else if (nvm && nvm->getAddrRange().contains(pkt->getAddr())) {
-//         // rely on the abstract memory
-//         nvm->functionalAccess(pkt);
-//    } else {
-//         panic("Can't handle address range for packet %s\n",
-//               pkt->print());
-//    }
+    if (minirankDRAM &&
+              minirankDRAM->getAddrRange().contains(pkt->getAddr()))
+    {
+        // rely on the abstract memory
+        minirankDRAM->functionalAccess(pkt);
+    } else {
+        panic("Can't handle address range for packet %s\n",
+              pkt->print());
+   }
 }
 
 
@@ -185,14 +188,9 @@ MinirankMemCtrl::MemoryPort::getAddrRanges() const
 {
     AddrRangeList ranges;
     // FIXME return extended range ranges
-    // if (ctrl.dram) {
-    //     DPRINTF(DRAM, "Pushing DRAM ranges to port\n");
-    //     ranges.push_back(ctrl.dram->getAddrRange());
-    // }
-    // if (ctrl.nvm) {
-    //     DPRINTF(NVM, "Pushing NVM ranges to port\n");
-    //     ranges.push_back(ctrl.nvm->getAddrRange());
-    // }
+    if (ctrl.minirankDRAM) {
+        ranges.push_back(ctrl.minirankDRAM->getAddrRange());
+    }
     return ranges;
 }
 
@@ -216,12 +214,8 @@ Tick
 MinirankMemCtrl::recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &backdoor)
 {
     Tick latency = recvAtomic(pkt);
-    // FIXME add dram interface
-    // if (dram) {
-    //     dram->getBackdoor(backdoor);
-    // } else if (nvm) {
-    //     nvm->getBackdoor(backdoor);
-    // }
+
+    minirankDRAM->getBackdoor(backdoor);
     return latency;
 }
 

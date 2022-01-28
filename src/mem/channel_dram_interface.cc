@@ -6,6 +6,7 @@
 #include "debug/ChannelDRAM.hh"
 #include "debug/DRAMPower.hh"
 #include "debug/DRAMState.hh"
+#include "mem/minirank_dram_interface.hh"
 #include "mem/minirank_mem_ctrl.hh"
 #include "sim/system.hh"
 
@@ -19,9 +20,10 @@ namespace memory
 ChannelDRAMInterface::ChannelDRAMInterface(
         const MinirankDRAMInterfaceParams &_p,
         uint8_t raim_channel, MinirankDRAMInterface* raim, bool is_raim)
-    : DRAMInterface(_p),
+    : DRAMInterface(_p, is_raim),
       raimChannel(raim_channel),
-      stats(*this)
+      minirankInt(raim),
+      stats(*minirankInt)
 {
     DPRINTF(ChannelDRAM, "Setting up channel DRAM Interface\n");
 
@@ -34,11 +36,11 @@ ChannelDRAMInterface::ChannelDRAMInterface(
              "not allowed, must be a power of two\n", ranksPerChannel);
 
     isRaim = is_raim;
-    for (int i = 0; i < ranksPerChannel; i++) {
-        DPRINTF(ChannelDRAM, "Creating channel DRAM rank %d \n", i);
-        Rank* rank = new Rank(_p, i, raimChannel,this);
-        ranks.push_back(rank);
-    }
+    // for (int i = 0; i < ranksPerChannel; i++) {
+    //     DPRINTF(ChannelDRAM, "Creating channel DRAM rank %d \n", i);
+    //     Rank* rank = new Rank(_p, i,this,isRaim);
+    //     ranks.push_back(rank);
+    // }
 
     // determine the dram actual capacity from the DRAM config in Mbytes+
     uint64_t deviceCapacity = deviceSize / (1024 * 1024) * devicesPerRank *
@@ -825,47 +827,6 @@ ChannelDRAMInterface::minBankPrep(const MemPacketQueue& queue,
     return std::make_pair(bank_mask, hidden_bank_prep);
 }
 
-
-ChannelDRAMInterface::Rank::Rank(const MinirankDRAMInterfaceParams &_p,
-                         int _rank, unsigned _raim_channel,
-                         ChannelDRAMInterface* _channel_dram)
-    : EventManager(_channel_dram), dram(nullptr),channel_dram(_channel_dram),
-      pwrStateTrans(PWR_IDLE), pwrStatePostRefresh(PWR_IDLE),
-      pwrStateTick(0), refreshDueAt(0), pwrState(PWR_IDLE),
-      refreshState(REF_IDLE), inLowPowerState(false), rank(_rank),
-      raim_channel(_raim_channel),
-      readEntries(0), writeEntries(0), outstandingEvents(0),
-      wakeUpAllowedAt(0), power(_p, false), banks(_p.banks_per_rank),
-      numBanksActive(0), actTicks(_p.activation_limit, 0), lastBurstTick(0),
-      writeDoneEvent([this]{ processWriteDoneEvent(); }, name()),
-      activateEvent([this]{ processActivateEvent(); }, name()),
-      prechargeEvent([this]{ processPrechargeEvent(); }, name()),
-      refreshEvent([this]{ processRefreshEvent(); }, name()),
-      powerEvent([this]{ processPowerEvent(); }, name()),
-      wakeUpEvent([this]{ processWakeUpEvent(); }, name()),
-      stats(_channel_dram, *this)
-{
-    for (int b = 0; b < _p.banks_per_rank; b++) {
-        banks[b].bank = b;
-        // GDDR addressing of banks to BG is linear.
-        // Here we assume that all DRAM generations address bank groups as
-        // follows:
-        if (_p.bank_groups_per_rank > 0) {
-            // Simply assign lower bits to bank group in order to
-            // rotate across bank groups as banks are incremented
-            // e.g. with 4 banks per bank group and 16 banks total:
-            //    banks 0,4,8,12  are in bank group 0
-            //    banks 1,5,9,13  are in bank group 1
-            //    banks 2,6,10,14 are in bank group 2
-            //    banks 3,7,11,15 are in bank group 3
-            banks[b].bankgr = b % _p.bank_groups_per_rank;
-        } else {
-            // No bank groups; simply assign to bank number
-            banks[b].bankgr = b;
-        }
-    }
-}
-
 void
 ChannelDRAMInterface::ChannelDRAMStats::resetStats()
 {
@@ -873,7 +834,7 @@ ChannelDRAMInterface::ChannelDRAMStats::resetStats()
 }
 
 ChannelDRAMInterface::ChannelDRAMStats::
-                ChannelDRAMStats(ChannelDRAMInterface &_dram)
+                ChannelDRAMStats(MinirankDRAMInterface &_dram)
     : statistics::Group(&_dram),
     dram(_dram),
 
@@ -989,45 +950,6 @@ ChannelDRAMInterface::ChannelDRAMStats::regStats()
 
     pageHitRate = (writeRowHits + readRowHits) /
         (writeBursts + readBursts) * 100;
-}
-
-ChannelDRAMInterface::RankStats::RankStats(ChannelDRAMInterface* _channel_dram,
-        Rank &_rank)
-    : statistics::Group(_channel_dram,
-            csprintf("channel%d rank%d", _rank.raim_channel,
-            _rank.rank).c_str()), rank(_rank),
-
-    ADD_STAT(actEnergy, statistics::units::Joule::get(),
-             "Energy for activate commands per rank (pJ)"),
-    ADD_STAT(preEnergy, statistics::units::Joule::get(),
-             "Energy for precharge commands per rank (pJ)"),
-    ADD_STAT(readEnergy, statistics::units::Joule::get(),
-             "Energy for read commands per rank (pJ)"),
-    ADD_STAT(writeEnergy, statistics::units::Joule::get(),
-             "Energy for write commands per rank (pJ)"),
-    ADD_STAT(refreshEnergy, statistics::units::Joule::get(),
-             "Energy for refresh commands per rank (pJ)"),
-    ADD_STAT(actBackEnergy, statistics::units::Joule::get(),
-             "Energy for active background per rank (pJ)"),
-    ADD_STAT(preBackEnergy, statistics::units::Joule::get(),
-             "Energy for precharge background per rank (pJ)"),
-    ADD_STAT(actPowerDownEnergy, statistics::units::Joule::get(),
-             "Energy for active power-down per rank (pJ)"),
-    ADD_STAT(prePowerDownEnergy, statistics::units::Joule::get(),
-             "Energy for precharge power-down per rank (pJ)"),
-    ADD_STAT(selfRefreshEnergy, statistics::units::Joule::get(),
-             "Energy for self refresh per rank (pJ)"),
-
-    ADD_STAT(totalEnergy, statistics::units::Joule::get(),
-             "Total energy per rank (pJ)"),
-    ADD_STAT(averagePower, statistics::units::Watt::get(),
-             "Core power per rank (mW)"),
-
-    ADD_STAT(totalIdleTime, statistics::units::Tick::get(),
-             "Total Idle time Per DRAM Rank"),
-    ADD_STAT(pwrStateTime, statistics::units::Tick::get(),
-             "Time in different power states")
-{
 }
 
 std::pair<MemPacketQueue::iterator, Tick>

@@ -290,11 +290,11 @@ class ChannelMemCtrl : public MemCtrl
 
     struct CtrlStats : public statistics::Group
     {
-        CtrlStats(ChannelMemCtrl &ctrl);
+        CtrlStats(MinirankMemCtrl &ctrl);
 
         void regStats() override;
 
-        ChannelMemCtrl &ctrl;
+        MinirankMemCtrl &ctrl;
 
         // All statistics that the model needs to capture
         statistics::Scalar readReqs;
@@ -357,7 +357,7 @@ class ChannelMemCtrl : public MemCtrl
 
   public:
 
-    ChannelMemCtrl(const MinirankMemCtrlParams &p,
+    ChannelMemCtrl(const MinirankMemCtrlParams &p, bool _subranked = false,
         MinirankMemCtrl* _minirank = nullptr, uint8_t minirank_channel = 0,
         unsigned numOfChannels = 0);
 

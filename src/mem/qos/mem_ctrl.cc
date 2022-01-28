@@ -52,8 +52,8 @@ GEM5_DEPRECATED_NAMESPACE(QoS, qos);
 namespace qos
 {
 
-MemCtrl::MemCtrl(const QoSMemCtrlParams &p)
-  : ClockedObject(p),
+MemCtrl::MemCtrl(const QoSMemCtrlParams &p, MemCtrl *stats_parent)
+  : ClockedObject(p, stats_parent),
     policy(p.qos_policy),
     turnPolicy(p.qos_turnaround_policy),
     queuePolicy(QueuePolicy::create(p)),
@@ -62,7 +62,7 @@ MemCtrl::MemCtrl(const QoSMemCtrlParams &p)
     qosSyncroScheduler(p.qos_syncro_scheduler),
     totalReadQueueSize(0), totalWriteQueueSize(0),
     busState(READ), busStateNext(READ),
-    stats(*this),
+    stats(!stats_parent ? *this : *stats_parent),
     _system(p.system)
 {
     // Set the priority policy
@@ -117,6 +117,7 @@ MemCtrl::logRequest(BusState dir, RequestorID id, uint8_t _qos,
         requestTimes[id][addr].push_back(curTick());
     }
 
+    std::cout << stats.avgPriority.size() << std::endl;
     // Record statistics
     stats.avgPriority[id].sample(_qos);
 

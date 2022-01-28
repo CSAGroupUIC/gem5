@@ -234,7 +234,8 @@ class Clocked
 class ClockedObject : public SimObject, public Clocked
 {
   public:
-    ClockedObject(const ClockedObjectParams &p);
+    ClockedObject(const ClockedObjectParams &p,
+        ClockedObject *stats_parent = nullptr);
 
     /** Parameters of ClockedObject */
     using Params = ClockedObjectParams;

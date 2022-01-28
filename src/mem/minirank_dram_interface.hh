@@ -32,7 +32,7 @@ class MinirankDRAMInterface : public DRAMInterface
 
     public:
 
-    void setCtrl(MinirankMemCtrl* _ctrl);
+    void setMRCtrl(MinirankMemCtrl* _ctrl);
     void startup() override;
     void init() override;
 

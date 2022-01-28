@@ -55,16 +55,17 @@ namespace gem5
 namespace memory
 {
 
-MemCtrl::MemCtrl(const MemCtrlParams &p) :
-    qos::MemCtrl(p),
+MemCtrl::MemCtrl(const MemCtrlParams &p, bool _subranked,
+      MinirankMemCtrl* _raim) :
+    qos::MemCtrl(p, !_subranked ? nullptr : (MemCtrl*)_raim),
     port(name() + ".port", *this), isTimingMode(false),
     retryRdReq(false), retryWrReq(false),
     nextReqEvent([this]{ processNextReqEvent(); }, name()),
     respondEvent([this]{ processRespondEvent(); }, name()),
     dram(p.dram), nvm(p.nvm),
-    readBufferSize((dram ? dram->readBufferSize : 0) +
+    readBufferSize((dram ? dram->readBufferSize : 64) +
                    (nvm ? nvm->readBufferSize : 0)),
-    writeBufferSize((dram ? dram->writeBufferSize : 0) +
+    writeBufferSize((dram ? dram->writeBufferSize : 128) +
                     (nvm ? nvm->writeBufferSize : 0)),
     writeHighThreshold(writeBufferSize * p.write_high_thresh_perc / 100.0),
     writeLowThreshold(writeBufferSize * p.write_low_thresh_perc / 100.0),

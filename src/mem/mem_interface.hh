@@ -309,6 +309,7 @@ class MemInterface : public AbstractMemory
  */
 class DRAMInterface : public MemInterface
 {
+  friend class ChannelDRAMInterface;
   protected:
 
     bool isRaim;
@@ -410,7 +411,6 @@ class DRAMInterface : public MemInterface
     struct RankStats : public statistics::Group
     {
         RankStats(DRAMInterface* dram, Rank &rank);
-        RankStats(ChannelDRAMInterface* dram, Rank &rank);
 
         void regStats() override;
         void resetStats() override;
@@ -604,9 +604,6 @@ class DRAMInterface : public MemInterface
 
         Rank(const DRAMInterfaceParams &_p, int _rank,
              DRAMInterface* _dram);
-
-        Rank(const MinirankDRAMInterfaceParams &_p, int _rank,
-             unsigned _raim_channel, ChannelDRAMInterface* _channel_dram);
 
         const std::string name() const { return csprintf("%d", rank); }
 
@@ -1031,7 +1028,9 @@ class DRAMInterface : public MemInterface
      */
     void checkRefreshState(uint8_t rank);
 
-    DRAMInterface(const DRAMInterfaceParams &_p);
+    bool checkRaim() { return isRaim; }
+
+    DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim = false);
 };
 
 /**

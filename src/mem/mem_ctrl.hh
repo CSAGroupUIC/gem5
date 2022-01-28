@@ -56,6 +56,7 @@
 #include "base/statistics.hh"
 #include "enums/MemSched.hh"
 #include "mem/qos/mem_ctrl.hh"
+// #include "mem/minirank_mem_ctrl.hh"
 #include "mem/qport.hh"
 #include "params/MemCtrl.hh"
 #include "sim/eventq.hh"
@@ -239,6 +240,7 @@ typedef std::deque<MemPacket*> MemPacketQueue;
  * please cite the paper.
  *
  */
+class MinirankMemCtrl;
 class MemCtrl : public qos::MemCtrl
 {
   private:
@@ -530,6 +532,7 @@ class MemCtrl : public qos::MemCtrl
      * and access, it is tRP + tRCD + tCL.
      */
     Tick nextReqTime;
+    unsigned testValue;
 
     struct CtrlStats : public statistics::Group
     {
@@ -623,7 +626,8 @@ class MemCtrl : public qos::MemCtrl
 
   public:
 
-    MemCtrl(const MemCtrlParams &p);
+    MemCtrl(const MemCtrlParams &p, bool _subranked = false,
+      MinirankMemCtrl* raim = nullptr);
 
     /**
      * Ensure that all interfaced have drained commands

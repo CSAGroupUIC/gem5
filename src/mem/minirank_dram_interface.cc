@@ -48,6 +48,12 @@ MinirankDRAMInterface::startup()
     }
 }
 
+void
+MinirankDRAMInterface::setMRCtrl(MinirankMemCtrl* _ctrl)
+{
+    ctrl = _ctrl;
+}
+
 Addr
 MinirankDRAMInterface::mapAddr(Addr addr)
 {
@@ -61,6 +67,9 @@ void
 MinirankDRAMInterface::init()
 {
     AbstractMemory::init();
+    for (ChannelDRAMInterface* c : channels) {
+        c->system(_system);
+    }
     // a bit of sanity checks on the interleaving, save it for here to
     // ensure that the system pointer is initialised
     if (range.interleaved()) {
