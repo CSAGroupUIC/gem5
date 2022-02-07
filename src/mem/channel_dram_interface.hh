@@ -42,6 +42,23 @@ class ChannelDRAMInterface : public DRAMInterface
 
     MinirankDRAMInterface* minirankInt;
 
+    class ChannelRank;
+
+    class ChannelRank : public DRAMInterface :: Rank
+    {
+        public:
+
+        ChannelRank(const MinirankDRAMInterfaceParams &p,
+                int _rank, ChannelDRAMInterface& _dram,
+                bool is_channel);
+
+        EventFunctionWrapper writeDoneEvent;
+        EventFunctionWrapper activateEvent;
+        EventFunctionWrapper prechargeEvent;
+        EventFunctionWrapper refreshEvent;
+        EventFunctionWrapper powerEvent;
+        EventFunctionWrapper wakeUpEvent;
+    };
     void activateBank(Rank& rank_ref, Bank& bank_ref, Tick act_tick,
                 uint32_t row);
 

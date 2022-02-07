@@ -17,7 +17,8 @@ namespace memory
 
 MinirankDRAMInterface::MinirankDRAMInterface(
             const MinirankDRAMInterfaceParams &_p)
-    : DRAMInterface(_p)
+    : DRAMInterface(_p),
+    stats(*this)
 {
     DPRINTF(MinirankDRAM, "Setting up minirank DRAM Interface\n");
 
@@ -67,7 +68,7 @@ void
 MinirankDRAMInterface::init()
 {
     AbstractMemory::init();
-    for (ChannelDRAMInterface* c : channels) {
+    for (DRAMInterface* c : channels) {
         c->system(_system);
     }
     // a bit of sanity checks on the interleaving, save it for here to
@@ -105,10 +106,13 @@ MinirankDRAMInterface::init()
             assert(burstsPerStripe <= burstsPerRowBuffer);
         }
     }
+    DPRINTF(MinirankDRAM, "Init minirank DRAM Interface\n");
 }
 
+// FIXME set up rank should be sub channel function, need to fix later
 void MinirankDRAMInterface::setupRank(const uint8_t rank, const bool is_read)
 {
+    DPRINTF(MinirankDRAM, "Setting up rank in mr dram\n");
     channels[0]->setupRank(rank,is_read);
 }
 
@@ -138,6 +142,26 @@ MinirankDRAMInterface::allRanksDrained() const
     return all_ranks_drained;
 }
 
+MinirankDRAMInterface::MinirankDRAMStats::MinirankDRAMStats(
+          MinirankDRAMInterface &_dram)
+    : Stats::Group(&_dram),
+    dram(_dram),
+    ADD_STAT(parityDRAM, statistics::units::Count::get(),
+              " A test stats update")
+{
+}
+
+void
+MinirankDRAMInterface::MinirankDRAMStats::regStats()
+{
+    using namespace statistics;
+}
+
+void
+MinirankDRAMInterface::MinirankDRAMStats::resetStats()
+{
+    // dram.lastStatsResetTick = curTick();
+}
 } // namespce memory
 
 } // namespace gem5

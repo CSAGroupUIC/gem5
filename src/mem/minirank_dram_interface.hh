@@ -30,6 +30,21 @@ class MinirankDRAMInterface : public DRAMInterface
 
     std::vector<ChannelDRAMInterface* > channels;
 
+    protected:
+
+    struct MinirankDRAMStats : public statistics::Group
+    {
+        MinirankDRAMStats(MinirankDRAMInterface &_dram);
+
+        void regStats() override;
+        void resetStats() override;
+
+        MinirankDRAMInterface &dram;
+        Stats::Scalar parityDRAM;
+    };
+
+    MinirankDRAMStats stats;
+
     public:
 
     void setMRCtrl(MinirankMemCtrl* _ctrl);

@@ -36,11 +36,11 @@ ChannelDRAMInterface::ChannelDRAMInterface(
              "not allowed, must be a power of two\n", ranksPerChannel);
 
     isRaim = is_raim;
-    // for (int i = 0; i < ranksPerChannel; i++) {
-    //     DPRINTF(ChannelDRAM, "Creating channel DRAM rank %d \n", i);
-    //     Rank* rank = new Rank(_p, i,this,isRaim);
-    //     ranks.push_back(rank);
-    // }
+    for (int i = 0; i < ranksPerChannel; i++) {
+        DPRINTF(ChannelDRAM, "Creating channel DRAM rank %d \n", i);
+        ChannelRank* rank = new ChannelRank(_p, i,*this, true);
+        ranks.push_back(rank);
+    }
 
     // determine the dram actual capacity from the DRAM config in Mbytes+
     uint64_t deviceCapacity = deviceSize / (1024 * 1024) * devicesPerRank *
@@ -113,7 +113,7 @@ void
 ChannelDRAMInterface::activateBank(Rank& rank_ref, Bank& bank_ref,
                        Tick act_tick, uint32_t row)
 {
-    DPRINTF(ChannelDRAM,"channel dram interface startup\n");
+    DPRINTF(ChannelDRAM,"channel dram interface activate bank\n");
 
     assert(rank_ref.actTicks.size() == activationLimit);
 
@@ -833,9 +833,11 @@ ChannelDRAMInterface::ChannelDRAMStats::resetStats()
     dram.lastStatsResetTick = curTick();
 }
 
+// Fixme fine channel number
 ChannelDRAMInterface::ChannelDRAMStats::
                 ChannelDRAMStats(MinirankDRAMInterface &_dram)
-    : statistics::Group(&_dram),
+    : statistics::Group(&_dram,
+            csprintf("channel%d", 0).c_str()),
     dram(_dram),
 
     ADD_STAT(readBursts, statistics::units::Count::get(),
@@ -1070,6 +1072,21 @@ ChannelDRAMInterface::chooseNextFRFCFS(MemPacketQueue& queue,
     }
 
     return std::make_pair(selected_pkt_it, selected_col_at);
+}
+
+ChannelDRAMInterface::ChannelRank::ChannelRank(
+        const MinirankDRAMInterfaceParams &_p, int _rank,
+        ChannelDRAMInterface& _dram, bool is_raim)
+    : Rank(_p, _rank, _dram, is_raim),
+      writeDoneEvent([this]{ processWriteDoneEvent(); }, name()),
+      activateEvent([this]{ processActivateEvent(); }, name()),
+      prechargeEvent([this]{ processPrechargeEvent(); }, name()),
+      refreshEvent([this]{ processRefreshEvent(); }, name()),
+      powerEvent([this]{ processPowerEvent(); }, name()),
+      wakeUpEvent([this]{ processWakeUpEvent(); }, name())
+{
+            // nothing to add
+
 }
 
 } // namespce memory

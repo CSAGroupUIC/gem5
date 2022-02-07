@@ -60,6 +60,8 @@ ChannelMemCtrl::ChannelMemCtrl(const MinirankMemCtrlParams &p,
         uint8_t minirank_channel,
         unsigned numOfChannels) :
     MemCtrl(p, _subranked, _minirank),
+    nextReqEvent([this]{ processNextReqEvent(); }, name()),
+    respondEvent([this]{ processRespondEvent(); }, name()),
     minirankChannel(minirank_channel),
     minirankDRAM(p.minirank_dram),
     minirank(_minirank),

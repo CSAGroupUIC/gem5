@@ -117,7 +117,6 @@ MemCtrl::logRequest(BusState dir, RequestorID id, uint8_t _qos,
         requestTimes[id][addr].push_back(curTick());
     }
 
-    std::cout << stats.avgPriority.size() << std::endl;
     // Record statistics
     stats.avgPriority[id].sample(_qos);
 

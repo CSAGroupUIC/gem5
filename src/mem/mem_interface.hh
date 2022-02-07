@@ -410,7 +410,7 @@ class DRAMInterface : public MemInterface
     class Rank;
     struct RankStats : public statistics::Group
     {
-        RankStats(DRAMInterface* dram, Rank &rank);
+        RankStats(DRAMInterface &dram, Rank &rank);
 
         void regStats() override;
         void resetStats() override;
@@ -481,7 +481,7 @@ class DRAMInterface : public MemInterface
         /**
          * A reference to the parent DRAMInterface instance
          */
-        DRAMInterface* dram;
+        DRAMInterface& dram;
 
         /**
          * A reference to the parent ChannelDRAMInterface
@@ -526,6 +526,7 @@ class DRAMInterface : public MemInterface
 
       public:
 
+        bool isChannel;
         /**
          * Current power state.
          */
@@ -603,7 +604,7 @@ class DRAMInterface : public MemInterface
         Tick lastBurstTick;
 
         Rank(const DRAMInterfaceParams &_p, int _rank,
-             DRAMInterface* _dram);
+             DRAMInterface& _dram, bool is_channel);
 
         const std::string name() const { return csprintf("%d", rank); }
 

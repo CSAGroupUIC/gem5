@@ -145,8 +145,10 @@ class ChannelMemCtrl : public MemCtrl
      * in these methods
      */
     void processNextReqEvent();
+    EventFunctionWrapper nextReqEvent;
 
     void processRespondEvent();
+    EventFunctionWrapper respondEvent;
 
     /**
      * Check if the read queue has room for more entries
