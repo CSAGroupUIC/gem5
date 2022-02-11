@@ -168,6 +168,27 @@ MinirankMemCtrl::recvFunctional(PacketPtr pkt)
 }
 
 
+DrainState
+MinirankMemCtrl::drain()
+{
+    DrainState state = DrainState::Drained;
+
+    for (MemCtrl* c : minirankChannels) {
+        if (c->drain() == DrainState::Draining)
+            state = DrainState::Draining;
+    }
+
+    return state;
+}
+
+void
+MinirankMemCtrl::drainResume()
+{
+    for (MemCtrl* c :minirankChannels) {
+        c->drainResume();
+    }
+}
+
 Port &
 MinirankMemCtrl::getPort(const std::string &if_name, PortID idx)
 {

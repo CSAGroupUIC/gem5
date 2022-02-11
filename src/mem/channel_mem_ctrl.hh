@@ -378,9 +378,6 @@ class ChannelMemCtrl : public MemCtrl
     MinirankMemCtrl* getMinirankMemCtrl(){  return minirank;}
   protected:
 
-    Tick recvAtomic(PacketPtr pkt);
-    Tick recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &backdoor);
-    void recvFunctional(PacketPtr pkt);
     bool recvTimingReq(PacketPtr pkt);
 };
 

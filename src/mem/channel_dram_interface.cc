@@ -20,7 +20,7 @@ namespace memory
 ChannelDRAMInterface::ChannelDRAMInterface(
         const MinirankDRAMInterfaceParams &_p,
         uint8_t raim_channel, MinirankDRAMInterface* raim, bool is_raim)
-    : DRAMInterface(_p, is_raim),
+    : DRAMInterface(_p, is_raim, raim),
       raimChannel(raim_channel),
       minirankInt(raim),
       stats(*minirankInt)
@@ -38,7 +38,7 @@ ChannelDRAMInterface::ChannelDRAMInterface(
     isRaim = is_raim;
     for (int i = 0; i < ranksPerChannel; i++) {
         DPRINTF(ChannelDRAM, "Creating channel DRAM rank %d \n", i);
-        ChannelRank* rank = new ChannelRank(_p, i,*this, true);
+        Rank* rank = new Rank(_p, i,*this, true);
         ranks.push_back(rank);
     }
 
@@ -236,7 +236,7 @@ ChannelDRAMInterface::prechargeBank(Rank& rank_ref, Bank& bank, Tick pre_tick,
 
     // sample the bytes per activate here since we are closing
     // the page
-    // stats.bytesPerActivate.sample(bank.bytesAccessed);
+    stats.bytesPerActivate.sample(bank.bytesAccessed);
 
     bank.openRow = Bank::NO_ROW;
 
@@ -314,13 +314,13 @@ ChannelDRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     Bank& bank_ref = rank_ref.banks[mem_pkt->bank];
 
     // for the state we need to track if it is a row hit or not
-    // bool row_hit = true;
+    bool row_hit = true;
 
     // Determine the access latency and update the bank state
     if (bank_ref.openRow == mem_pkt->row) {
         // nothing to do
     } else {
-        // row_hit = false;
+        row_hit = false;
 
         // If there is a page open, precharge it.
         if (bank_ref.openRow != Bank::NO_ROW) {
@@ -515,16 +515,16 @@ ChannelDRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
         // Every respQueue which will generate an event, increment count
         ++rank_ref.outstandingEvents;
 
-        // stats.readBursts++;
-        // if (row_hit)
-        //     stats.readRowHits++;
-        // stats.bytesRead += burstSize;
-        // stats.perBankRdBursts[mem_pkt->bankId]++;
+        stats.readBursts++;
+        if (row_hit)
+            stats.readRowHits++;
+        stats.bytesRead += burstSize;
+        stats.perBankRdBursts[mem_pkt->bankId]++;
 
-        // // Update latency stats
-        // stats.totMemAccLat += mem_pkt->readyTime - mem_pkt->entryTime;
-        // stats.totQLat += cmd_at - mem_pkt->entryTime;
-        // stats.totBusLat += tBURST;
+        // Update latency stats
+        stats.totMemAccLat += mem_pkt->readyTime - mem_pkt->entryTime;
+        stats.totQLat += cmd_at - mem_pkt->entryTime;
+        stats.totBusLat += tBURST;
     } else {
         // Schedule write done event to decrement event count
         // after the readyTime has been reached
@@ -544,11 +544,11 @@ ChannelDRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
         // decrement count for DRAM rank
         --rank_ref.writeEntries;
 
-        // stats.writeBursts++;
-        // if (row_hit)
-        //     stats.writeRowHits++;
-        // stats.bytesWritten += burstSize;
-        // stats.perBankWrBursts[mem_pkt->bankId]++;
+        stats.writeBursts++;
+        if (row_hit)
+            stats.writeRowHits++;
+        stats.bytesWritten += burstSize;
+        stats.perBankWrBursts[mem_pkt->bankId]++;
 
     }
     // Update bus state to reflect when previous command was issued
@@ -1074,20 +1074,54 @@ ChannelDRAMInterface::chooseNextFRFCFS(MemPacketQueue& queue,
     return std::make_pair(selected_pkt_it, selected_col_at);
 }
 
-ChannelDRAMInterface::ChannelRank::ChannelRank(
-        const MinirankDRAMInterfaceParams &_p, int _rank,
-        ChannelDRAMInterface& _dram, bool is_raim)
-    : Rank(_p, _rank, _dram, is_raim),
-      writeDoneEvent([this]{ processWriteDoneEvent(); }, name()),
-      activateEvent([this]{ processActivateEvent(); }, name()),
-      prechargeEvent([this]{ processPrechargeEvent(); }, name()),
-      refreshEvent([this]{ processRefreshEvent(); }, name()),
-      powerEvent([this]{ processPowerEvent(); }, name()),
-      wakeUpEvent([this]{ processWakeUpEvent(); }, name())
-{
-            // nothing to add
+// ChannelDRAMInterface::ChannelRank::ChannelRank(
+//         const MinirankDRAMInterfaceParams &_p, int _rank,
+//         ChannelDRAMInterface& _dram, bool is_raim)
+//     : Rank(_p, _rank, _dram, is_raim),
+//       writeDoneEvent([this]{ processWriteDoneEvent(); }, name()),
+//       activateEvent([this]{ processActivateEvent(); }, name()),
+//       prechargeEvent([this]{ processPrechargeEvent(); }, name()),
+//       refreshEvent([this]{ processRefreshEvent(); }, name()),
+//       powerEvent([this]{ processPowerEvent(); }, name()),
+//       wakeUpEvent([this]{ processWakeUpEvent(); }, name()),
+//       stats(_dram, *this)
+// {
+//             // nothing to add
 
-}
+// }
+
+
+// //FIXME pass channel numner here instead of 0
+// ChannelDRAMInterface::ChannelRankStats::ChannelRankStats(
+//                     ChannelDRAMInterface& _dram, ChannelRank &_rank)
+//     : statistics::Group(_dram.minirankInt,
+//             csprintf("rank%d, channel%d", _rank.rank, 0).c_str()),
+//     rank(_rank)
+// {
+// }
+
+
+// void
+// ChannelDRAMInterface::ChannelRankStats::regStats()
+// {
+//     using namespace statistics;
+// }
+
+// void
+// ChannelDRAMInterface::ChannelRankStats::resetStats()
+// {
+//     statistics::Group::resetStats();
+
+//     rank.resetStats();
+// }
+
+// void
+// ChannelDRAMInterface::ChannelRankStats::preDumpStats()
+// {
+//     statistics::Group::preDumpStats();
+
+//     rank.computeStats();
+// }
 
 } // namespce memory
 

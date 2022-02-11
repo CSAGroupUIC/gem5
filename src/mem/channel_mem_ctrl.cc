@@ -76,6 +76,7 @@ ChannelMemCtrl::ChannelMemCtrl(const MinirankMemCtrlParams &p,
     // Hook up interfaces to the controller
     assert(channel_dram);
     channel_dram->setChannelCtrl(this);
+    channel_dram->setCtrl(this);
 
     fatal_if(!channel_dram && !nvm,
             "Memory controller must have an interface");
@@ -112,54 +113,6 @@ ChannelMemCtrl::startup()
                 (channel_dram ? channel_dram->commandOffset() :
                         nvm->commandOffset());
     }
-}
-
-Tick
-ChannelMemCtrl::recvAtomic(PacketPtr pkt)
-{
-    DPRINTF(ChannelMemCtrl, "recvAtomic: %s 0x%x\n",
-             pkt->cmdString(), pkt->getAddr());
-
-    panic_if(pkt->cacheResponding(), "Should not see packets where cache "
-             "is responding");
-
-    Tick latency = 0;
-    // do the actual memory access and turn the packet into a response
-    if (channel_dram &&
-                channel_dram->getAddrRange().contains(pkt->getAddr())) {
-        channel_dram->access(pkt);
-
-        if (pkt->hasData()) {
-            // this value is not supposed to be accurate, just enough to
-            // keep things going, mimic a closed page
-            latency = channel_dram->accessLatency();
-        }
-    } else if (nvm && nvm->getAddrRange().contains(pkt->getAddr())) {
-        nvm->access(pkt);
-
-        if (pkt->hasData()) {
-            // this value is not supposed to be accurate, just enough to
-            // keep things going, mimic a closed page
-            latency = nvm->accessLatency();
-        }
-    } else {
-        panic("Can't handle address range for packet %s\n",
-              pkt->print());
-    }
-
-    return latency;
-}
-
-Tick
-ChannelMemCtrl::recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &backdoor)
-{
-    Tick latency = recvAtomic(pkt);
-    if (channel_dram) {
-        channel_dram->getBackdoor(backdoor);
-    } else if (nvm) {
-        nvm->getBackdoor(backdoor);
-    }
-    return latency;
 }
 
 bool
@@ -644,7 +597,7 @@ ChannelMemCtrl::accessAndRespond(PacketPtr pkt, Tick static_latency)
     // response
     if (channel_dram &&
                 channel_dram->getAddrRange().contains(pkt->getAddr())) {
-        channel_dram->access(pkt);
+        minirankDRAM->access(pkt);
     } else if (nvm && nvm->getAddrRange().contains(pkt->getAddr())) {
         nvm->access(pkt);
     } else {
@@ -1250,22 +1203,6 @@ ChannelMemCtrl::CtrlStats::regStats()
             requestorReadAccesses;
     requestorWriteAvgLat = requestorWriteTotalLat /
             requestorWriteAccesses;
-}
-
-void
-ChannelMemCtrl::recvFunctional(PacketPtr pkt)
-{
-    if (channel_dram &&
-            channel_dram->getAddrRange().contains(pkt->getAddr())) {
-        // rely on the abstract memory
-        channel_dram->functionalAccess(pkt);
-    } else if (nvm && nvm->getAddrRange().contains(pkt->getAddr())) {
-        // rely on the abstract memory
-        nvm->functionalAccess(pkt);
-   } else {
-        panic("Can't handle address range for packet %s\n",
-              pkt->print());
-   }
 }
 
 bool

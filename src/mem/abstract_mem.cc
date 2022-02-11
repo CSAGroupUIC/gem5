@@ -57,14 +57,14 @@ namespace gem5
 namespace memory
 {
 
-AbstractMemory::AbstractMemory(const Params &p) :
+AbstractMemory::AbstractMemory(const Params &p, AbstractMemory *stats_parent) :
     ClockedObject(p), range(p.range), pmemAddr(NULL),
     backdoor(params().range, nullptr,
              (MemBackdoor::Flags)(MemBackdoor::Readable |
                                   MemBackdoor::Writeable)),
     confTableReported(p.conf_table_reported), inAddrMap(p.in_addr_map),
     kvmMap(p.kvm_map), _system(NULL),
-    stats(*this)
+    stats(!stats_parent ? *this : *stats_parent)
 {
     panic_if(!range.valid() || !range.size(),
              "Memory range %s must be valid with non-zero size.",

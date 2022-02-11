@@ -213,7 +213,7 @@ class AbstractMemory : public ClockedObject
 
     PARAMS(AbstractMemory);
 
-    AbstractMemory(const Params &p);
+    AbstractMemory(const Params &p, AbstractMemory *stats_parent = nullptr);
     virtual ~AbstractMemory() {}
 
     void initState() override;

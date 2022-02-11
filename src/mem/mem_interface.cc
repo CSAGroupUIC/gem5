@@ -47,7 +47,6 @@
 #include "debug/DRAMPower.hh"
 #include "debug/DRAMState.hh"
 #include "debug/NVM.hh"
-#include "mem/channel_dram_interface.hh"
 #include "sim/system.hh"
 
 namespace gem5
@@ -58,8 +57,9 @@ using namespace Data;
 namespace memory
 {
 
-MemInterface::MemInterface(const MemInterfaceParams &_p)
-    : AbstractMemory(_p),
+MemInterface::MemInterface(const MemInterfaceParams &_p,
+            bool is_raim, MinirankDRAMInterface* _raim)
+    : AbstractMemory(_p, !is_raim ? nullptr :(MemInterface*) _raim),
       addrMapping(_p.addr_mapping),
       burstSize((_p.devices_per_rank * _p.burst_length *
                  _p.device_bus_width) / 8),
@@ -84,6 +84,11 @@ MemInterface::setCtrl(MemCtrl* _ctrl, unsigned int command_window)
 {
     ctrl = _ctrl;
     maxCommandsPerWindow = command_window / tCK;
+}
+void
+MemInterface::setCtrl(MemCtrl* _ctrl)
+{
+    ctrl = _ctrl;
 }
 
 MemPacket*
@@ -744,9 +749,10 @@ DRAMInterface::addRankToRankDelay(Tick cmd_at)
     }
 }
 
-DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim)
-    : MemInterface(_p),
-      isRaim(is_raim),
+DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim,
+                MinirankDRAMInterface* _raim)
+    : MemInterface(_p, is_raim, _raim),
+      isRaim(is_raim), raim(_raim), raimChannel(0),
       bankGroupsPerRank(_p.bank_groups_per_rank),
       bankGroupArch(_p.bank_groups_per_rank > 0),
       tCL(_p.tCL),
@@ -1993,8 +1999,10 @@ DRAMInterface::DRAMStats::regStats()
 //FIXME pass channel numner here instead of 0
 DRAMInterface::RankStats::RankStats(DRAMInterface& _dram,
                             Rank &_rank)
-    : statistics::Group(&_dram,
-            csprintf("rank%d", _rank.rank).c_str()),
+    : statistics::Group(!_dram.isRaim ? &_dram : (DRAMInterface*)_dram.raim,
+        !_dram.isRaim ? csprintf("rank%d", _rank.rank).c_str() :
+            csprintf("channel%d_rank%d", _dram.raimChannel,
+                _rank.rank).c_str()),
     rank(_rank),
 
     ADD_STAT(actEnergy, statistics::units::Joule::get(),

@@ -101,12 +101,21 @@ class MinirankMemCtrl : public MemCtrl
 
     MinirankMemCtrl(const MinirankMemCtrlParams &p);
 
+    /**
+     * Ensure that all interfaced have drained commands
+     *
+     * @return bool flag, set once drain complete
+     */
+    bool allIntfDrained() const;
+
+    DrainState drain() override;
+
     Port &getPort(const std::string &if_name,
                   PortID idx=InvalidPortID) override;
 
     virtual void init() override;
     virtual void startup() override;
-    // virtual void drainResume() override;
+    virtual void drainResume() override;
     Tick scheduleAddrBus(Tick req_time);
 
     protected:

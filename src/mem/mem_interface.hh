@@ -188,6 +188,7 @@ class MemInterface : public AbstractMemory
      *                       check command bandwidth
      */
     void setCtrl(MemCtrl* _ctrl, unsigned int command_window);
+    void setCtrl(MemCtrl* _ctrl);
 
     /**
      * Get an address in a dense range which starts from 0. The input
@@ -298,7 +299,8 @@ class MemInterface : public AbstractMemory
 
     Tick checkTCK(){ return tCK; }
     typedef MemInterfaceParams Params;
-    MemInterface(const Params &_p);
+    MemInterface(const Params &_p, bool is_raim = false,
+        MinirankDRAMInterface* _raim = nullptr);
 };
 
 /**
@@ -313,6 +315,13 @@ class DRAMInterface : public MemInterface
   protected:
 
     bool isRaim;
+    /**
+    * For rank stat use, pass the minirank Interface
+    * Otherwise stats wouldn't be registered
+    */
+    MinirankDRAMInterface * raim;
+
+    unsigned raimChannel;
     /**
      * Simple structure to hold the values needed to keep track of
      * commands for DRAMPower
@@ -484,12 +493,6 @@ class DRAMInterface : public MemInterface
         DRAMInterface& dram;
 
         /**
-         * A reference to the parent ChannelDRAMInterface
-         * instance
-         */
-        ChannelDRAMInterface* channel_dram;
-
-        /**
          * Since we are taking decisions out of order, we need to keep
          * track of what power transition is happening at what time
          */
@@ -547,7 +550,6 @@ class DRAMInterface : public MemInterface
          */
         uint8_t rank;
 
-        unsigned raim_channel;
        /**
          * Track number of packets in read queue going to this rank
          */
@@ -1031,7 +1033,8 @@ class DRAMInterface : public MemInterface
 
     bool checkRaim() { return isRaim; }
 
-    DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim = false);
+    DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim = false,
+        MinirankDRAMInterface* raim = nullptr);
 };
 
 /**

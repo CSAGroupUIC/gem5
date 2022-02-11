@@ -42,23 +42,36 @@ class ChannelDRAMInterface : public DRAMInterface
 
     MinirankDRAMInterface* minirankInt;
 
-    class ChannelRank;
+    // class ChannelRank;
+    // struct ChannelRankStats : public statistics::Group
+    // {
+    //     ChannelRankStats(ChannelDRAMInterface &dram, ChannelRank &rank);
 
-    class ChannelRank : public DRAMInterface :: Rank
-    {
-        public:
+    //     void regStats() override;
+    //     void resetStats() override;
+    //     void preDumpStats() override;
 
-        ChannelRank(const MinirankDRAMInterfaceParams &p,
-                int _rank, ChannelDRAMInterface& _dram,
-                bool is_channel);
+    //     ChannelRank &rank;
+    // };
 
-        EventFunctionWrapper writeDoneEvent;
-        EventFunctionWrapper activateEvent;
-        EventFunctionWrapper prechargeEvent;
-        EventFunctionWrapper refreshEvent;
-        EventFunctionWrapper powerEvent;
-        EventFunctionWrapper wakeUpEvent;
-    };
+    // class ChannelRank : public DRAMInterface :: Rank
+    // {
+    //     public:
+
+    //     ChannelRank(const MinirankDRAMInterfaceParams &p,
+    //             int _rank, ChannelDRAMInterface& _dram,
+    //             bool is_channel);
+
+    //     EventFunctionWrapper writeDoneEvent;
+    //     EventFunctionWrapper activateEvent;
+    //     EventFunctionWrapper prechargeEvent;
+    //     EventFunctionWrapper refreshEvent;
+    //     EventFunctionWrapper powerEvent;
+    //     EventFunctionWrapper wakeUpEvent;
+
+    //     protected:
+    //     ChannelRankStats stats;
+    // };
     void activateBank(Rank& rank_ref, Bank& bank_ref, Tick act_tick,
                 uint32_t row);
 
