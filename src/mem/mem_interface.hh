@@ -803,7 +803,7 @@ class DRAMInterface : public MemInterface
      * @param act_tick Time when the activation takes place
      * @param row Index of the row
      */
-    void activateBank(Rank& rank_ref, Bank& bank_ref, Tick act_tick,
+    virtual void activateBank(Rank& rank_ref, Bank& bank_ref, Tick act_tick,
                       uint32_t row);
 
     /**
@@ -817,7 +817,7 @@ class DRAMInterface : public MemInterface
      * @param auto_or_preall Is this an auto-precharge or precharge all command
      * @param trace Is this an auto precharge then do not add to trace
      */
-    void prechargeBank(Rank& rank_ref, Bank& bank_ref,
+    virtual void prechargeBank(Rank& rank_ref, Bank& bank_ref,
                        Tick pre_tick, bool auto_or_preall = false,
                        bool trace = true);
 
@@ -891,7 +891,7 @@ class DRAMInterface : public MemInterface
      * @return One-hot encoded mask of bank indices
      * @return boolean indicating burst can issue seamlessly, with no gaps
      */
-    std::pair<std::vector<uint32_t>, bool>
+    virtual std::pair<std::vector<uint32_t>, bool>
     minBankPrep(const MemPacketQueue& queue, Tick min_col_at) const;
 
     /*
@@ -1033,8 +1033,8 @@ class DRAMInterface : public MemInterface
 
     bool checkRaim() { return isRaim; }
 
-    DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim = false,
-        MinirankDRAMInterface* raim = nullptr);
+    DRAMInterface(const DRAMInterfaceParams &_p, uint8_t raim_channel = 0,
+        bool is_raim = false, MinirankDRAMInterface* raim = nullptr);
 };
 
 /**

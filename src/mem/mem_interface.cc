@@ -749,10 +749,10 @@ DRAMInterface::addRankToRankDelay(Tick cmd_at)
     }
 }
 
-DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim,
-                MinirankDRAMInterface* _raim)
+DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p,
+            uint8_t raim_channel, bool is_raim, MinirankDRAMInterface* _raim)
     : MemInterface(_p, is_raim, _raim),
-      isRaim(is_raim), raim(_raim), raimChannel(0),
+      isRaim(is_raim), raim(_raim), raimChannel(raim_channel),
       bankGroupsPerRank(_p.bank_groups_per_rank),
       bankGroupArch(_p.bank_groups_per_rank > 0),
       tCL(_p.tCL),
@@ -785,12 +785,13 @@ DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p, bool is_raim,
     // address decoding
     fatal_if(!isPowerOf2(ranksPerChannel), "DRAM rank count of %d is "
              "not allowed, must be a power of two\n", ranksPerChannel);
-
-    // for (int i = 0; i < ranksPerChannel; i++) {
-    //     DPRINTF(DRAM, "Creating DRAM rank %d \n", i);
-    //     Rank* rank = new Rank(_p, i, *this);
-    //     ranks.push_back(rank);
-    // }
+    if (!raim){
+        for (int i = 0; i < ranksPerChannel; i++) {
+            DPRINTF(DRAM, "Creating DRAM rank %d \n", i);
+            Rank* rank = new Rank(_p, i, *this, false);
+            ranks.push_back(rank);
+        }
+    }
 
     // determine the dram actual capacity from the DRAM config in Mbytes
     uint64_t deviceCapacity = deviceSize / (1024 * 1024) * devicesPerRank *

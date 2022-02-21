@@ -532,7 +532,6 @@ class MemCtrl : public qos::MemCtrl
      * and access, it is tRP + tRCD + tCL.
      */
     Tick nextReqTime;
-    unsigned testValue;
 
     struct CtrlStats : public statistics::Group
     {
