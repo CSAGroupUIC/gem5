@@ -30,13 +30,13 @@ MinirankDRAMInterface::MinirankDRAMInterface(
     fatal_if(!isPowerOf2(ranksPerChannel), "DRAM rank count of %d is "
              "not allowed, must be a power of two\n", ranksPerChannel);
 
-    // numOfChannel = 8;
-    // for (int i = 0; i < numOfChannel; i++) {
-        // DPRINTF(MinirankDRAM, "Creating DRAM rank %d \n", i);
+    numOfChannels = 8;
+    for (int i = 0; i < numOfChannels; i++) {
+        DPRINTF(MinirankDRAM, "Creating DRAM rank %d \n", i);
         ChannelDRAMInterface* channel_dram
-                = new ChannelDRAMInterface(_p, 0, this,true);
+                = new ChannelDRAMInterface(_p, i, this,true);
         channels.push_back(channel_dram);
-    // }
+    }
 }
 
 void
@@ -160,7 +160,7 @@ MinirankDRAMInterface::MinirankDRAMStats::regStats()
 void
 MinirankDRAMInterface::MinirankDRAMStats::resetStats()
 {
-    // dram.lastStatsResetTick = curTick();
+    dram.lastStatsResetTick = curTick();
 }
 } // namespce memory
 

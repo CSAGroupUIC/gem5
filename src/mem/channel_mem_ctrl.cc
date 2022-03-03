@@ -60,19 +60,17 @@ ChannelMemCtrl::ChannelMemCtrl(const MinirankMemCtrlParams &p,
         uint8_t minirank_channel,
         unsigned numOfChannels) :
     MemCtrl(p, _subranked, _minirank),
-    nextReqEvent([this]{ processNextReqEvent(); }, name()),
-    respondEvent([this]{ processRespondEvent(); }, name()),
     minirankChannel(minirank_channel),
     minirankDRAM(p.minirank_dram),
     minirank(_minirank),
-    stats(*minirank)
+    stats(*minirank, minirank_channel)
 {
     DPRINTF(ChannelMemCtrl, "Setting up controller\n");
     readQueue.resize(p.qos_priorities);
     writeQueue.resize(p.qos_priorities);
 
     if (minirankDRAM)
-        channel_dram = minirankDRAM->getChannelDRAMInterface(0);
+        channel_dram = minirankDRAM->getChannelDRAMInterface(minirankChannel);
     // Hook up interfaces to the controller
     assert(channel_dram);
     channel_dram->setChannelCtrl(this);
@@ -101,6 +99,7 @@ ChannelMemCtrl::init()
 void
 ChannelMemCtrl::startup()
 {
+    DPRINTF(ChannelMemCtrl, "Chan memctrl start up\n");
     // remember the memory system mode of operation
     isTimingMode = system()->isTimingMode();
 
@@ -1010,9 +1009,10 @@ ChannelMemCtrl::burstAlign(Addr addr, bool is_channel_dram) const
 }
 
 // FIXME channel nmumber need to be fixed, 0 for now
-ChannelMemCtrl::CtrlStats::CtrlStats(MinirankMemCtrl &_ctrl)
+ChannelMemCtrl::CtrlStats::CtrlStats(MinirankMemCtrl &_ctrl,
+                uint8_t minirank_channel)
     : statistics::Group(&_ctrl,
-      csprintf("channel%d", 0).c_str()),
+      csprintf("channel%d", minirank_channel).c_str()),
     ctrl(_ctrl),
 
     ADD_STAT(readReqs, statistics::units::Count::get(),

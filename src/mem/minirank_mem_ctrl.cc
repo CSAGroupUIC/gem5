@@ -1,3 +1,5 @@
+#include "debug/Drain.hh"
+#include "debug/MinirankMemCtrl.hh"
 #include "mem/minirank_dram_interface.hh"
 #include "minirank_mem_ctrl.hh"
 
@@ -14,6 +16,7 @@ MinirankMemCtrl::MinirankMemCtrl(const MinirankMemCtrlParams &p) :
     minirankDRAM(p.minirank_dram),
     stats(*this)
 {
+    DPRINTF(MinirankMemCtrl, "Setting up mr controller\n");
     // perform a basic check of the write thresholds
     if (p.write_low_thresh_perc >= p.write_high_thresh_perc)
         fatal("Write buffer low threshold %d must be smaller than the "
@@ -23,15 +26,18 @@ MinirankMemCtrl::MinirankMemCtrl(const MinirankMemCtrlParams &p) :
         minirankDRAM->setMRCtrl(this);
     assert(minirankDRAM);
 
-    numOfChannels = 1;
-    ChannelMemCtrl* channel_ctrl = new ChannelMemCtrl(p, true, this,
-            0, numOfChannels);
-    minirankChannels.push_back(channel_ctrl);
+    numOfChannels = 8;
+    for (int i = 0; i < numOfChannels; i++) {
+        ChannelMemCtrl* channel_ctrl = new ChannelMemCtrl(p, true, this,
+            i, numOfChannels);
+        minirankChannels.push_back(channel_ctrl);
+    }
 }
 
 void
 MinirankMemCtrl::init()
 {
+    DPRINTF(MinirankMemCtrl, "mr controller init\n");
     for (ChannelMemCtrl* c : minirankChannels) {
         c->_system = _system;
     }
@@ -46,6 +52,7 @@ MinirankMemCtrl::init()
 void
 MinirankMemCtrl::startup()
 {
+    DPRINTF(MinirankMemCtrl, "Strting up mr controller\n");
     isTimingMode = system()->isTimingMode();
     for (ChannelMemCtrl* c : minirankChannels) {
         c->startup();
@@ -99,7 +106,13 @@ MinirankMemCtrl::mapChannel(PacketPtr pkt)
     // map into different sub level channel ctrls
     // FIXME add mapping scheme
     uint8_t channel;
-    channel = 0;
+
+    Addr addr = pkt->getAddr();
+    Addr base_addr = minirankDRAM->getCtrlAddr(addr);
+    assert(base_addr % 64 == 0);
+
+    channel = (base_addr >> 6) % 8;
+    DPRINTF(MinirankMemCtrl, "mr map pkt to channel %d\n", channel);
     return channel;
 }
 
@@ -107,6 +120,7 @@ bool
 MinirankMemCtrl::recvTimingReq(PacketPtr pkt)
 {
     // This is where we enter from the outside world
+    DPRINTF(MinirankMemCtrl, "mr controller recvTiming\n");
 
     panic_if(pkt->cacheResponding(), "Should not see packets where cache "
              "is responding");
@@ -171,9 +185,10 @@ MinirankMemCtrl::recvFunctional(PacketPtr pkt)
 DrainState
 MinirankMemCtrl::drain()
 {
+    DPRINTF(Drain, "mr controller drain()\n");
     DrainState state = DrainState::Drained;
 
-    for (MemCtrl* c : minirankChannels) {
+    for (ChannelMemCtrl* c : minirankChannels) {
         if (c->drain() == DrainState::Draining)
             state = DrainState::Draining;
     }
@@ -184,7 +199,7 @@ MinirankMemCtrl::drain()
 void
 MinirankMemCtrl::drainResume()
 {
-    for (MemCtrl* c :minirankChannels) {
+    for (ChannelMemCtrl* c :minirankChannels) {
         c->drainResume();
     }
 }

@@ -50,7 +50,7 @@ class ChannelDRAMInterface : public DRAMInterface
 
     struct ChannelDRAMStats : public statistics::Group
     {
-        ChannelDRAMStats(MinirankDRAMInterface &dram);
+        ChannelDRAMStats(MinirankDRAMInterface &dram, uint8_t raim_channel);
 
         void regStats() override;
         void resetStats() override;

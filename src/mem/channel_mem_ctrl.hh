@@ -144,11 +144,11 @@ class ChannelMemCtrl : public MemCtrl
      * processRespondEvent is called; no parameters are allowed
      * in these methods
      */
-    void processNextReqEvent();
-    EventFunctionWrapper nextReqEvent;
+    virtual void processNextReqEvent() override;
+    // EventFunctionWrapper nextReqEvent;
 
-    void processRespondEvent();
-    EventFunctionWrapper respondEvent;
+    virtual void processRespondEvent() override;
+    // EventFunctionWrapper respondEvent;
 
     /**
      * Check if the read queue has room for more entries
@@ -292,7 +292,7 @@ class ChannelMemCtrl : public MemCtrl
 
     struct CtrlStats : public statistics::Group
     {
-        CtrlStats(MinirankMemCtrl &ctrl);
+        CtrlStats(MinirankMemCtrl &ctrl, uint8_t minirankChannel);
 
         void regStats() override;
 

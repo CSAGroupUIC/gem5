@@ -26,7 +26,7 @@ class MinirankDRAMInterface : public DRAMInterface
      * A pointer to the parent MemCtrl instance
      */
     MinirankMemCtrl* ctrl;
-    unsigned numOfChannel;
+    unsigned numOfChannels;
 
     std::vector<ChannelDRAMInterface* > channels;
 

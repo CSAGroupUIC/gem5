@@ -294,10 +294,10 @@ class MemCtrl : public qos::MemCtrl
      * processRespondEvent is called; no parameters are allowed
      * in these methods
      */
-    void processNextReqEvent();
+    virtual void processNextReqEvent();
     EventFunctionWrapper nextReqEvent;
 
-    void processRespondEvent();
+    virtual void processRespondEvent();
     EventFunctionWrapper respondEvent;
 
     /**

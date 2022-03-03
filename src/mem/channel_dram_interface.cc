@@ -22,7 +22,7 @@ ChannelDRAMInterface::ChannelDRAMInterface(
         uint8_t raim_channel, MinirankDRAMInterface* raim, bool is_raim)
     : DRAMInterface(_p, raim_channel, is_raim, raim),
       minirankInt(raim),
-      stats(*minirankInt)
+      stats(*minirankInt, raim_channel)
 {
     DPRINTF(ChannelDRAM, "Setting up channel DRAM Interface\n");
 
@@ -648,9 +648,10 @@ ChannelDRAMInterface::ChannelDRAMStats::resetStats()
 
 // Fixme fine channel number
 ChannelDRAMInterface::ChannelDRAMStats::
-                ChannelDRAMStats(MinirankDRAMInterface &_dram)
+                ChannelDRAMStats(MinirankDRAMInterface &_dram,
+                uint8_t raim_channel)
     : statistics::Group(&_dram,
-            csprintf("channel%d", 0).c_str()),
+            csprintf("channel%d", raim_channel).c_str()),
     dram(_dram),
 
     ADD_STAT(readBursts, statistics::units::Count::get(),
