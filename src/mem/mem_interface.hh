@@ -314,6 +314,8 @@ class DRAMInterface : public MemInterface
   friend class ChannelDRAMInterface;
   protected:
 
+    bool isMinirank;
+
     bool isRaim;
     /**
     * For rank stat use, pass the minirank Interface
@@ -1034,7 +1036,8 @@ class DRAMInterface : public MemInterface
     bool checkRaim() { return isRaim; }
 
     DRAMInterface(const DRAMInterfaceParams &_p, uint8_t raim_channel = 0,
-        bool is_raim = false, MinirankDRAMInterface* raim = nullptr);
+        bool is_raim = false, MinirankDRAMInterface* raim = nullptr,
+        bool is_mr = false);
 };
 
 /**

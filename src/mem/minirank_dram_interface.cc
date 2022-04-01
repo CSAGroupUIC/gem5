@@ -17,7 +17,7 @@ namespace memory
 
 MinirankDRAMInterface::MinirankDRAMInterface(
             const MinirankDRAMInterfaceParams &_p)
-    : DRAMInterface(_p),
+    : DRAMInterface(_p, 0, false, nullptr, true),
     stats(*this)
 {
     DPRINTF(MinirankDRAM, "Setting up minirank DRAM Interface\n");
@@ -112,8 +112,9 @@ MinirankDRAMInterface::init()
 // FIXME set up rank should be sub channel function, need to fix later
 void MinirankDRAMInterface::setupRank(const uint8_t rank, const bool is_read)
 {
+    // should not be called
     DPRINTF(MinirankDRAM, "Setting up rank in mr dram\n");
-    channels[0]->setupRank(rank,is_read);
+    // channels[0]->setupRank(rank,is_read);
 }
 
 // DEBUG need to code differently?
@@ -136,9 +137,11 @@ void MinirankDRAMInterface::setupRank(const uint8_t rank, const bool is_read)
 bool
 MinirankDRAMInterface::allRanksDrained() const
 {
-    // true until proven false
+    // this function is a sub level rank drained function
+    // for each chan mem interface, therefore
+    // minirank side should not be called
     bool all_ranks_drained = true;
-    all_ranks_drained = channels[0]->allRanksDrained();
+    // all_ranks_drained = channels[0]->allRanksDrained();
     return all_ranks_drained;
 }
 

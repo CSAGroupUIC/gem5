@@ -41,6 +41,8 @@
 #include "mem/mem_ctrl.hh"
 
 #include "base/trace.hh"
+#include "debug/Access.hh"
+#include "debug/AddrBus.hh"
 #include "debug/DRAM.hh"
 #include "debug/Drain.hh"
 #include "debug/MemCtrl.hh"
@@ -309,6 +311,7 @@ MemCtrl::addToReadQueue(PacketPtr pkt, unsigned int pkt_count, bool is_dram)
     // queue, do so now
     if (!nextReqEvent.scheduled()) {
         DPRINTF(MemCtrl, "Request scheduled immediately\n");
+        DPRINTF(Access, "add to read queue\n");
         schedule(nextReqEvent, curTick());
     }
 }
@@ -467,6 +470,7 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
     if (pkt->isWrite()) {
         assert(size != 0);
         if (writeQueueFull(pkt_count)) {
+            panic("write queue full\n");
             DPRINTF(MemCtrl, "Write queue full, not accepting\n");
             // remember that we have to retry this port
             retryWrReq = true;
@@ -481,6 +485,7 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
         assert(pkt->isRead());
         assert(size != 0);
         if (readQueueFull(pkt_count)) {
+            panic("Read queue full\n");
             DPRINTF(MemCtrl, "Read queue full, not accepting\n");
             // remember that we have to retry this port
             retryRdReq = true;
@@ -1174,6 +1179,7 @@ MemCtrl::processNextReqEvent()
     // It is possible that a refresh to another rank kicks things back into
     // action before reaching this point.
     if (!nextReqEvent.scheduled())
+        DPRINTF(Access, "processNextReqEvent \n");
         schedule(nextReqEvent, std::max(nextReqTime, curTick()));
 
     // If there is space available and we have writes waiting then let

@@ -3,6 +3,7 @@
 #include "base/bitfield.hh"
 #include "base/cprintf.hh"
 #include "base/trace.hh"
+#include "debug/Access.hh"
 #include "debug/ChannelDRAM.hh"
 #include "debug/DRAMPower.hh"
 #include "debug/DRAMState.hh"
@@ -22,7 +23,7 @@ ChannelDRAMInterface::ChannelDRAMInterface(
         uint8_t raim_channel, MinirankDRAMInterface* raim, bool is_raim)
     : DRAMInterface(_p, raim_channel, is_raim, raim),
       minirankInt(raim),
-      stats(*minirankInt, raim_channel)
+      stats(*this, raim_channel)
 {
     DPRINTF(ChannelDRAM, "Setting up channel DRAM Interface\n");
 
@@ -318,6 +319,7 @@ ChannelDRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     // Determine the access latency and update the bank state
     if (bank_ref.openRow == mem_pkt->row) {
         // nothing to do
+        DPRINTF(Access, "open row \n");
     } else {
         row_hit = false;
 
@@ -352,6 +354,7 @@ ChannelDRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     }
     else
         cmd_at = channelCtrl->getMinirankMemCtrl()->scheduleAddrBus(cmd_at);
+        DPRINTF(Access, " -- new cmd_at %lld schedule addr bus \n ", cmd_at);
 
     // if we are interleaving bursts, ensure that
     // 1) we don't double interleave on next burst issue
@@ -648,9 +651,9 @@ ChannelDRAMInterface::ChannelDRAMStats::resetStats()
 
 // Fixme fine channel number
 ChannelDRAMInterface::ChannelDRAMStats::
-                ChannelDRAMStats(MinirankDRAMInterface &_dram,
+                ChannelDRAMStats(ChannelDRAMInterface &_dram,
                 uint8_t raim_channel)
-    : statistics::Group(&_dram,
+    : statistics::Group(_dram.raim,
             csprintf("channel%d", raim_channel).c_str()),
     dram(_dram),
 

@@ -43,6 +43,7 @@
 #include "base/bitfield.hh"
 #include "base/cprintf.hh"
 #include "base/trace.hh"
+#include "debug/Access.hh"
 #include "debug/DRAM.hh"
 #include "debug/DRAMPower.hh"
 #include "debug/DRAMState.hh"
@@ -498,6 +499,7 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     // Determine the access latency and update the bank state
     if (bank_ref.openRow == mem_pkt->row) {
         // nothing to do
+        DPRINTF(Access, "open row \n");
     } else {
         row_hit = false;
 
@@ -531,6 +533,7 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     // else
     //     cmd_at = ctrl->verifySingleCmd(cmd_at, maxCommandsPerWindow);
     cmd_at = ctrl->scheduleAddrBus(cmd_at);
+    DPRINTF(Access, " -- new cmd_at %lld schedule addr bus\n ", cmd_at);
 
     // if we are interleaving bursts, ensure that
     // 1) we don't double interleave on next burst issue
@@ -548,7 +551,6 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
             cmd_at = rank_ref.lastBurstTick + tBURST;
         }
     }
-    DPRINTF(DRAM, "Schedule RD/WR burst at tick %d\n", cmd_at);
 
     // update the packet ready time
     mem_pkt->readyTime = cmd_at + tCL + tBURST;
@@ -750,8 +752,9 @@ DRAMInterface::addRankToRankDelay(Tick cmd_at)
 }
 
 DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p,
-            uint8_t raim_channel, bool is_raim, MinirankDRAMInterface* _raim)
-    : MemInterface(_p, is_raim, _raim),
+            uint8_t raim_channel, bool is_raim, MinirankDRAMInterface* _raim,
+            bool is_mr)
+    : MemInterface(_p, is_raim, _raim), isMinirank(is_mr),
       isRaim(is_raim), raim(_raim), raimChannel(raim_channel),
       bankGroupsPerRank(_p.bank_groups_per_rank),
       bankGroupArch(_p.bank_groups_per_rank > 0),
@@ -785,7 +788,7 @@ DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p,
     // address decoding
     fatal_if(!isPowerOf2(ranksPerChannel), "DRAM rank count of %d is "
              "not allowed, must be a power of two\n", ranksPerChannel);
-    if (!raim){
+    if (!raim && !isMinirank){
         for (int i = 0; i < ranksPerChannel; i++) {
             DPRINTF(DRAM, "Creating DRAM rank %d \n", i);
             Rank* rank = new Rank(_p, i, *this, false);

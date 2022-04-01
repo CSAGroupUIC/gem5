@@ -1,3 +1,4 @@
+#include "debug/AddrBus.hh"
 #include "debug/Drain.hh"
 #include "debug/MinirankMemCtrl.hh"
 #include "mem/minirank_dram_interface.hh"
@@ -160,6 +161,7 @@ MinirankMemCtrl::scheduleAddrBus(Tick req_time)
     while (reserve_map.find(bus_slot) != reserve_map.end()) {
         ++bus_slot;
     }
+    DPRINTF(AddrBus,"Insert request at %d \n", bus_slot);
     reserve_map.insert(bus_slot);
 
     // Return the granted time

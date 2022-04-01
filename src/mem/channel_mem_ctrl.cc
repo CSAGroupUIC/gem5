@@ -41,6 +41,7 @@
 #include "mem/channel_mem_ctrl.hh"
 
 #include "base/trace.hh"
+#include "debug/Access.hh"
 #include "debug/ChannelMemCtrl.hh"
 #include "debug/Drain.hh"
 #include "debug/NVM.hh"
@@ -69,10 +70,12 @@ ChannelMemCtrl::ChannelMemCtrl(const MinirankMemCtrlParams &p,
     readQueue.resize(p.qos_priorities);
     writeQueue.resize(p.qos_priorities);
 
+    ChannelDRAMInterface* ch_dram = nullptr;
     if (minirankDRAM)
-        channel_dram = minirankDRAM->getChannelDRAMInterface(minirankChannel);
+        ch_dram = minirankDRAM->getChannelDRAMInterface(minirankChannel);
     // Hook up interfaces to the controller
-    assert(channel_dram);
+    assert(ch_dram);
+    channel_dram = ch_dram;
     channel_dram->setChannelCtrl(this);
     channel_dram->setCtrl(this);
 
